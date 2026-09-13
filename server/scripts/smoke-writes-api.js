@@ -547,6 +547,74 @@ async function main() {
     }
   });
 
+  // ---- updateRegionContainerContents: create a Region-Container, add one
+  // item to each of two regions, verify both persist, then delete. ----
+
+  await run("updateRegionContainerContents (Region-Container 2 regions)", async () => {
+    const template = await repo.getItemById(itemId);
+    if (!template || !template.relativePath) {
+      throw new Error(`item ${itemId} not found or has no relativePath — pick a different SMOKE_ITEM_ID`);
+    }
+
+    let container = null;
+    let itemA = null;
+    let itemB = null;
+
+    try {
+      container = await repo.createItem({
+        title: "ZZZ-SmokeTest-RegionContainer",
+        type: "container",
+        containerType: "RegionContainer",
+      });
+      check("Region-Container created", !!container && container.id != null, JSON.stringify(container));
+
+      itemA = await repo.createItem({
+        title: "ZZZ-SmokeTest-RegionItemA",
+        type: "music",
+        relativePath: template.relativePath,
+      });
+      itemB = await repo.createItem({
+        title: "ZZZ-SmokeTest-RegionItemB",
+        type: "music",
+        relativePath: template.relativePath,
+      });
+      check(
+        "two test items created for region content",
+        !!itemA && itemA.id != null && !!itemB && itemB.id != null,
+        `A=${itemA && itemA.id} B=${itemB && itemB.id}`
+      );
+
+      const withBoth = await repo.updateRegionContainerContents(container.id, {
+        1: [itemA.id],
+        2: [itemB.id],
+      });
+      check(
+        "updateRegionContainerContents sets region 1 and 2",
+        withBoth &&
+          withBoth.regions?.["1"]?.length === 1 &&
+          String(withBoth.regions["1"][0].internalId) === String(itemA.internalId) &&
+          withBoth.regions?.["2"]?.length === 1 &&
+          String(withBoth.regions["2"][0].internalId) === String(itemB.internalId),
+        JSON.stringify(withBoth?.regions)
+      );
+
+      const reloaded = await repo.getItemById(container.id);
+      check(
+        "region contents persist after reload",
+        reloaded &&
+          reloaded.regions?.["1"]?.length === 1 &&
+          String(reloaded.regions["1"][0].internalId) === String(itemA.internalId) &&
+          reloaded.regions?.["2"]?.length === 1 &&
+          String(reloaded.regions["2"][0].internalId) === String(itemB.internalId),
+        JSON.stringify(reloaded?.regions)
+      );
+    } finally {
+      if (container) await repo.deleteItem(container.id);
+      if (itemA) await repo.deleteItem(itemA.id);
+      if (itemB) await repo.deleteItem(itemB.id);
+    }
+  });
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail > 0 ? 1 : 0);
 }

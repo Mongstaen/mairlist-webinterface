@@ -144,6 +144,23 @@ function requireIdArray(value, label = "ids") {
   return value.map((id, i) => requireId(id, `${label}[${i}]`));
 }
 
+const REGION_KEY_RE = /^\d+$/;
+
+// Regionen-Container-Inhalt: { "1": [itemId, ...], "2": [...], ... } — Keys
+// sind numerische Strings (kein Array, siehe docs/MAIRLISTDB-API.md), jeder
+// Wert ein Array von IDs (leer erlaubt, eine leere Region ist gueltig).
+function requireRegionsMap(value, label = "regions") {
+  const obj = requireObject(value, label);
+  const result = {};
+  for (const [key, ids] of Object.entries(obj)) {
+    if (!REGION_KEY_RE.test(key)) {
+      throw new ValidationError(`${label}: Region-Schlüssel "${key}" muss eine Zahl sein`);
+    }
+    result[key] = requireIdArray(ids, `${label}["${key}"]`);
+  }
+  return result;
+}
+
 // Verpackt einen Handler so, dass ein ValidationError als 400 mit
 // verstaendlicher Meldung beantwortet wird, statt als 500 im Error-Handler
 // zu landen. Alles andere geht wie gehabt an next().
@@ -175,5 +192,6 @@ module.exports = {
   requireObject,
   optionalObject,
   requireIdArray,
+  requireRegionsMap,
   wrapValidation,
 };

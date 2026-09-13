@@ -181,10 +181,32 @@ lokal ersetzt, kein Reload der ganzen Stunde.
 
 Nur im api-Modus verfügbar (`DATA_SOURCE=api`) — der Bearbeiten-Button
 erscheint im mock/sqlite-Modus gar nicht erst, die Route antwortet dort
-mit einer klaren Fehlermeldung statt eines Fake-Erfolgs. Regionen- und
-Nachrichten-Container bleiben vorerst schreibgeschützt (andere
-Inhalts-Struktur, siehe "Gegenüberstellung" in
-`docs/MAIRLISTDB-API.md`).
+mit einer klaren Fehlermeldung statt eines Fake-Erfolgs. Nachrichten-
+Container bleiben weiterhin schreibgeschützt (andere Inhalts-Struktur,
+siehe "Gegenüberstellung" in `docs/MAIRLISTDB-API.md`).
+
+**Regionen-Container-Inhalt bearbeitbar (api-Modus):** Für
+Regionen-Container (`Class: "RegionContainer"`) zeigt die aufgeklappte
+Container-Zeile ebenfalls einen "Bearbeiten"-Button, aber mit einem Tab
+pro Region statt einer einzelnen Liste. Die Anzahl der Tabs ergibt sich
+aus den tatsächlich vorhandenen `Content`-Keys (plus ein "+Region"-
+Button für die nächste freie Nummer) — es gibt keine feste Regionen-
+Anzahl. Jede Region nutzt intern dieselbe Zeilen-Liste (Entfernen/
+Drag&Drop-Umsortieren/Hinzufügen über Suche) wie der Hook-Container-
+Editor (`ItemRowList`-Komponente, aus beiden Editoren geteilt). Eine
+leere Region ist ein gültiger Zustand, kein Fehler.
+
+"Speichern" ruft `PUT /api/items/:id/region-container-contents` (Body:
+`{ regions: { "1": [itemId, ...], "2": [...] } }`) auf, das im Backend
+auf `apiItems.js`s `updateRegionContainerContents()` geht: löst pro
+Region die itemIds zu vollständigen Item-Objekten auf (geteilte
+Hilfsfunktion `resolveItemsForContainer`, auch vom Hook-Container-Pfad
+genutzt) und baut die zweifache Verschachtelung
+`Content[region].Items[0].Playlist.Items[...]` auf (siehe
+`docs/MAIRLISTDB-API.md`, "Regionen-Container erstellen/
+aktualisieren"). Komfortfunktionen wie "gleiche Länge für alle
+Regionen" (wie im mAirList-Client) sind bewusst nicht nachgebaut —
+Regionen werden laut Rückmeldung praktisch nicht genutzt.
 
 **Bewusst leer statt Fehler** (`getLogs`, `getRecentLogs`): Diese
 Funktionen liefern im api-Modus ein leeres Array statt eines Fehlers.
@@ -515,7 +537,8 @@ mAirList kennt technisch eine feste Basis-Typliste. Feingliederung (z.B. Dropper
 | Playlist-Overrides: Änderungen aus dem Mix Editor und Item Editor werden als volatile Overrides pro Playlist-Eintrag gespeichert (`xmldata` Feld in der echten DB), getrennt vom globalen Item-Stand | ✅ |
 | Container-Inhalt aufklappbar anzeigen (Sub-Items) | ✅ |
 | Hook-Container-Inhalt bearbeiten (hinzufügen/entfernen/umsortieren) | ✅ (nur api-Modus) |
-| Regionen-/Nachrichten-Container-Inhalt bearbeiten | ⬜ |
+| Regionen-Container-Inhalt bearbeiten (pro Region) | ✅ (nur api-Modus) |
+| Nachrichten-Container-Inhalt bearbeiten | ⬜ |
 | Fix-Zeiten: Item startet zur festen Uhrzeit | ⬜ |
 | Checkpoint: "Prevent auto float around this item" (z.B. volle Stunde) | ⬜ |
 | Konflikt-Erkennung: Warnung wenn zwei Nutzer dieselbe Playlist bearbeiten | ⬜ Phase Mehrbenutzer |

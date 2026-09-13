@@ -70,6 +70,24 @@ function mapApiItemToInternal(apiItem, folderId = null) {
     .map((subItem) => mapApiItemToInternal(subItem.Item ?? subItem, folderId))
     .filter(Boolean);
 
+  // RegionContainer content lives under Content, an OBJECT keyed by
+  // numeric-string region ("1", "2", ...), not under Items/Playlist.Items —
+  // see docs/MAIRLISTDB-API.md's "Regionen-Container erstellen/
+  // aktualisieren". Two nesting levels per region:
+  // Content["1"].Items[0].Playlist.Items[...] holds that region's actual
+  // titles. Exposed as { regionKey: internalItem[] } for the frontend's
+  // region editor; other container types have no Content field, so this
+  // stays null for them.
+  const regions = apiItem.Content && typeof apiItem.Content === "object" && !Array.isArray(apiItem.Content)
+    ? Object.fromEntries(
+        Object.entries(apiItem.Content).map(([regionKey, region]) => {
+          const wrapper = region?.Items?.[0];
+          const regionItems = Array.isArray(wrapper?.Playlist?.Items) ? wrapper.Playlist.Items : [];
+          return [regionKey, regionItems.map((it) => mapApiItemToInternal(it, folderId)).filter(Boolean)];
+        })
+      )
+    : null;
+
   return {
     id: hasDatabaseId ? String(apiItem.DatabaseID) : null,
     internalId: hasDatabaseId ? Number(apiItem.DatabaseID) : null,
@@ -97,6 +115,7 @@ function mapApiItemToInternal(apiItem, folderId = null) {
     },
     attributes: apiItem.Attributes || {},
     subItems,
+    regions,
     updatedAt: new Date().toISOString(),
     playHistory: [],
   };
@@ -487,10 +506,12 @@ async function deleteItem(id) {
 // getItemById aufgelöst und über mapInternalItemToApi in ein vollständiges
 // API-Item-Objekt gemappt (gleiches Mapping wie beim normalen Item-PUT/POST),
 // nicht nur als bloße ID referenziert.
-async function updateContainerContents(containerId, itemIds) {
-  const current = await apiRequest("GET", `/api/v1/items/${encodeURIComponent(containerId)}`);
-  if (!current) return null;
-
+// Löst eine Liste von Item-IDs zu vollständigen API-Item-Objekten auf
+// (getItemById + mapInternalItemToApi), wie es sowohl updateContainerContents
+// als auch updateRegionContainerContents für ihren jeweiligen Inhalt
+// brauchen. IDs, die sich nicht auflösen lassen (gelöschtes Item o.ä.),
+// werden stillschweigend übersprungen statt den ganzen Vorgang abzubrechen.
+async function resolveItemsForContainer(itemIds) {
   const ids = (Array.isArray(itemIds) ? itemIds : [])
     .filter((id) => id != null && id !== "")
     .map((id) => String(id));
@@ -500,13 +521,61 @@ async function updateContainerContents(containerId, itemIds) {
     const internalItem = await getItemById(id);
     if (internalItem) items.push(mapInternalItemToApi(internalItem));
   }
+  return items;
+}
 
+async function updateContainerContents(containerId, itemIds) {
+  const current = await apiRequest("GET", `/api/v1/items/${encodeURIComponent(containerId)}`);
+  if (!current) return null;
+
+  const items = await resolveItemsForContainer(itemIds);
   const comment = items.map((apiItem) => apiItem.Title || "").join("\n");
 
   const merged = {
     ...current,
     Comment: comment,
     Playlist: { Items: items },
+  };
+
+  await apiRequest("PUT", `/api/v1/items/${encodeURIComponent(containerId)}`, { body: merged });
+
+  return getItemById(containerId);
+}
+
+// PUT /api/v1/items/<id> mit Content — VERIFIZIERT per Wireshark-Mitschnitt
+// (siehe docs/MAIRLISTDB-API.md, "Regionen-Container erstellen/
+// aktualisieren"). Content ist ein OBJEKT mit numerischen String-Keys pro
+// Region ("1", "2", ...), kein Array. Jede Region hat genau ein Items[0],
+// das selbst wieder ein Container-Wrapper ist, dessen Playlist.Items die
+// tatsächlichen Titel für diese Region enthält (zwei Verschachtelungs-
+// ebenen: Content["1"].Items[0].Playlist.Items[...]).
+//
+// regionItemIds: { "1": [itemId, ...], "2": [...], ... } — die Anzahl der
+// Regionen ergibt sich aus den vorhandenen Keys, es gibt keine feste Anzahl.
+async function updateRegionContainerContents(containerId, regionItemIds) {
+  const current = await apiRequest("GET", `/api/v1/items/${encodeURIComponent(containerId)}`);
+  if (!current) return null;
+
+  const content = {};
+  for (const [regionKey, itemIds] of Object.entries(regionItemIds || {})) {
+    const items = await resolveItemsForContainer(itemIds);
+    content[regionKey] = {
+      Items: [
+        {
+          Class: "Container",
+          Type: "Container",
+          Title: "Container",
+          State: "Normal",
+          Playlist: { Items: items },
+        },
+      ],
+    };
+  }
+
+  const merged = {
+    ...current,
+    Class: "RegionContainer",
+    Content: content,
   };
 
   await apiRequest("PUT", `/api/v1/items/${encodeURIComponent(containerId)}`, { body: merged });
@@ -751,6 +820,7 @@ module.exports = {
   getItemFolders,
   updateItem,
   updateContainerContents,
+  updateRegionContainerContents,
   createItem,
   assignItemsToFolder,
   removeItemFromFolder,

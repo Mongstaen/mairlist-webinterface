@@ -183,6 +183,7 @@ module.exports = {
   getAudioStream: apiAudio.getAudioStream,
   updateItem: apiItems.updateItem,
   updateContainerContents: apiItems.updateContainerContents,
+  updateRegionContainerContents: apiItems.updateRegionContainerContents,
   createItem: apiItems.createItem,
   deleteItem: apiItems.deleteItem,
   assignItemsToFolder: apiItems.assignItemsToFolder,

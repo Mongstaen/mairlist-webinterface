@@ -673,6 +673,14 @@ $doc={
 Titel für Region 1. Regionsnamen selbst kommen aus der
 Server-Konfiguration, nicht aus diesem Feld.
 
+**Implementiert:** `apiItems.js`s `updateRegionContainerContents(containerId,
+regionItemIds)` setzt genau dieses Format um (Route: `PUT
+/api/items/:id/region-container-contents` in `server/routes/library.js`,
+Frontend-Bearbeitung in `Playlist.jsx`, ein Tab pro Region) — siehe
+`docs/FEATURES.md`. `Title`/`Type` müssen bei jedem PUT erneut
+mitgeschickt werden (der aktuelle Container-Zustand wird vorher per GET
+geholt, ähnlich wie beim Hook-Container).
+
 ### Nachrichten-Container erstellen (leer)
 
 ```

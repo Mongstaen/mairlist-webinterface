@@ -18,7 +18,7 @@ const { getListenerCount } = require("../lib/listenerSource");
 const {
   requireId, optionalId, requireDate, optionalDate, requirePlaylistId,
   optionalCount, requirePosition, requireText, optionalText,
-  requireObject, optionalObject, requireIdArray, wrapValidation,
+  requireObject, optionalObject, requireIdArray, requireRegionsMap, wrapValidation,
 } = require("../lib/validate");
 
 router.use(requireAuth);
@@ -337,6 +337,31 @@ router.put("/items/:id/container-contents", requireScope("library.write"), wrapV
   }
 
   const item = await repo.updateContainerContents(itemId, itemIds);
+  if (!item) return res.status(404).json({ error: "Item not found" });
+  res.json(item);
+}));
+
+// PUT /api/items/:id/region-container-contents -> replace a RegionContainer's
+// per-region contents. Body: { regions: { "1": [itemId, ...], "2": [...] } }
+// (region numbers/keys are whatever's actually present, not fixed).
+// Only implemented for DATA_SOURCE=api (apiRepository); mock/sqlite return a
+// clear "not available" error instead of pretending to succeed.
+router.put("/items/:id/region-container-contents", requireScope("library.write"), wrapValidation(async (req, res) => {
+  const itemId = requireId(req.params.id, "itemId");
+  const body = requireObject(req.body);
+  const regions = requireRegionsMap(body.regions, "regions");
+
+  if (process.env.DATA_SOURCE !== "api" || typeof repo.updateRegionContainerContents !== "function") {
+    return res.status(400).json({ error: "Container-Bearbeitung ist im aktuellen Modus nicht verfügbar" });
+  }
+
+  const current = await repo.getItemById(itemId);
+  if (!current) return res.status(404).json({ error: "Item not found" });
+  if (current.containerType !== "RegionContainer") {
+    return res.status(400).json({ error: "Item ist kein Regionen-Container" });
+  }
+
+  const item = await repo.updateRegionContainerContents(itemId, regions);
   if (!item) return res.status(404).json({ error: "Item not found" });
   res.json(item);
 }));
