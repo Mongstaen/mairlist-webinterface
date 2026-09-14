@@ -33,7 +33,8 @@ RUN apt-get purge -y --auto-remove git python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-RUN mv /build/server ./server \
+RUN mkdir -p ./frontend \
+    && mv /build/server ./server \
     && mv /build/frontend/dist ./frontend/dist \
     && rm -rf /build
 
