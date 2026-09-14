@@ -875,7 +875,7 @@ function savePlaylistItemOverrides(id, position, overrides) {
 // ---- auth ----
 //
 // Auth (users, sessions, tokens, roles) is handled entirely by the
-// webinterface's own auth database (server/webinterface-auth.db), completely
+// webinterface's own auth database (server/webinterface-auth.json), completely
 // independent of mAirList's content .mldb and its own (unreliable) auth.db.
 // See data/webAuthDb.js. Group-based permissions are not supported — the
 // five fixed roles (readonly/studio/dj/vtdj/admin) replace them.

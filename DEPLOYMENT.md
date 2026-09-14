@@ -50,7 +50,7 @@ der Server beim ersten Start ein zufälliges Passwort und schreibt es
 einmalig ins Server-Log.
 
 Hinweis: Die Content-DB (`.mldb`, mAirLists Bibliothek/Playlists) und die
-Benutzerverwaltung (`server/webinterface-auth.db`, siehe unten) sind zwei
+Benutzerverwaltung (`server/webinterface-auth.json`, siehe unten) sind zwei
 getrennte Datenbanken. mAirLists eigene `auth.db` wird vom Webinterface
 nicht mehr verwendet.
 
@@ -89,7 +89,7 @@ pm2 save
 
 ## Benutzerverwaltung (Bootstrap-Admin)
 Die Benutzerverwaltung ist unabhängig von mAirList und liegt in einer
-eigenen SQLite-Datei `server/webinterface-auth.db`, die beim ersten Start
+eigenen JSON-Datei `server/webinterface-auth.json`, die beim ersten Start
 automatisch angelegt wird. Existiert noch kein Benutzer, wird ein
 Admin-Account bootstrapped:
 - Passwort aus `INITIAL_ADMIN_PASSWORD` (falls in `.env` gesetzt), sonst

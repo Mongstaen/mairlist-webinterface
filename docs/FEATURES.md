@@ -604,7 +604,7 @@ braucht. Details:
 `auth.db` wird nicht mehr genutzt — Login dort ist deaktiviert
 (`ManagementLogin=off`), da Daten nicht zuverlässig persistiert wurden und
 das MD5-Hash-Schema nicht verifizierbar war. Stattdessen eigene,
-unabhängige SQLite-DB `server/webinterface-auth.db`
+unabhängige JSON-Datei `server/webinterface-auth.json`
 (`server/data/webAuthDb.js`) mit `bcrypt`-Hashing statt MD5. Beim ersten
 Start wird automatisch ein Bootstrap-Admin angelegt (Passwort im
 Server-Log oder via `INITIAL_ADMIN_PASSWORD` env var). Das
@@ -612,7 +612,7 @@ Gruppen-Feature wurde entfernt — die fünf Rollen ersetzen dieses Konzept.
 
 | Funktion | Status | Notiz |
 |---|---|---|
-| Login mit Benutzername/Passwort | ✅ | HTTP-only Session-Cookie, `server/routes/auth.js`, gegen eigene `webinterface-auth.db` |
+| Login mit Benutzername/Passwort | ✅ | HTTP-only Session-Cookie, `server/routes/auth.js`, gegen eigene `webinterface-auth.json` |
 | Bootstrap-Admin beim ersten Start | ✅ | `server/data/webAuthDb.js`, Passwort im Log oder via `INITIAL_ADMIN_PASSWORD` |
 | Rollen (readonly/studio/dj/vtdj/admin) | ✅ | Fest definiert in `server/data/webAuthDb.js`, Scope-Mapping über `ROLE_SCOPES` |
 | Rolle Read-only: nur lesen | ✅ | |

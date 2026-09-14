@@ -109,7 +109,7 @@ Folgendes ist bereits gehärtet (nicht nochmal anfassen):
 - Path-Traversal-Schutz in `resolveAudioPath()` und `uploadFile()`
 - Strukturierte Fehlermeldungen vom Server in `frontend/src/lib/api.js`
 - Datumsformat-Validierung bei `GET /api/playlists?date=`
-- Eigene Benutzerverwaltung (`server/webinterface-auth.db`) statt mAirLists
+- Eigene Benutzerverwaltung (`server/webinterface-auth.json`) statt mAirLists
   `auth.db`: Passwort-Hashing mit bcrypt statt MD5, siehe
   [Sicherheitsstand in `docs/FEATURES.md`](docs/FEATURES.md#-mehrbenutzer-und-administration)
 - `dotenv` fest auf `16.4.5` gepinnt (`server/package.json`) — 17.x enthält

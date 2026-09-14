@@ -3,8 +3,17 @@
 // disabled in production (ManagementLogin=off) and its MD5 hash scheme can't
 // be relied on, so the webinterface manages its own users/sessions/tokens
 // here, hashed with bcrypt, independent of mAirList's data and locking.
+//
+// Storage: a single JSON file, not a native-compiled SQLite binding. This
+// user/session/token store is tiny (dozens of rows, not millions) and a
+// native addon buys nothing here except a portability liability — better-
+// sqlite3's compiled .node addon can segfault at dlopen time on some CPUs/
+// container hosts (seen in the wild: a build+run cycle that works on one
+// machine crashes with SIGSEGV inside napi_module_register_by_symbol on
+// another, entirely outside this app's control). Plain JSON has no such
+// failure mode.
 
-const Database = require("better-sqlite3");
+const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
@@ -14,38 +23,31 @@ const bcrypt = require("bcryptjs");
 // sie also weiterhin. Ein Rehash bestehender Passwoerter ist nicht noetig.
 const BCRYPT_COST = 12;
 
-const DB_PATH = process.env.WEB_AUTH_DB_PATH || path.join(__dirname, "../webinterface-auth.db");
-const db = new Database(DB_PATH, { readonly: false });
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+const DB_PATH = process.env.WEB_AUTH_DB_PATH || path.join(__dirname, "../webinterface-auth.json");
+
+function emptyState() {
+  return { nextUserId: 1, nextTokenId: 1, users: [], sessions: [], tokens: [] };
+}
+
+function load() {
+  if (!fs.existsSync(DB_PATH)) return emptyState();
+  const raw = fs.readFileSync(DB_PATH, "utf8").trim();
+  if (!raw) return emptyState();
+  const parsed = JSON.parse(raw);
+  return { ...emptyState(), ...parsed };
+}
+
+let state = load();
+
+// Atomic-ish write: write to a temp file in the same directory, then rename
+// over the target. Avoids a half-written file if the process dies mid-save.
+function persist() {
+  const tmpPath = `${DB_PATH}.${process.pid}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(state, null, 2));
+  fs.renameSync(tmpPath, DB_PATH);
+}
+
 console.log(`Web Auth DB: ${DB_PATH}`);
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS web_users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    description TEXT DEFAULT '',
-    pw_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'readonly',
-    created TEXT NOT NULL,
-    updated TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS web_sessions (
-    sid TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES web_users(id) ON DELETE CASCADE,
-    expires TEXT NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS web_tokens (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL REFERENCES web_users(id) ON DELETE CASCADE,
-    token TEXT NOT NULL UNIQUE,
-    description TEXT DEFAULT '',
-    created TEXT NOT NULL,
-    expires TEXT
-  );
-`);
 
 // The five roles this webinterface understands. "admin" maps to the
 // mAirList-style UserLevel "Admin" (grants everything via
@@ -66,15 +68,21 @@ const ROLE_SCOPES = {
 };
 
 function bootstrapAdmin() {
-  const { count } = db.prepare("SELECT COUNT(*) AS count FROM web_users").get();
-  if (count > 0) return;
+  if (state.users.length > 0) return;
 
   const password = process.env.INITIAL_ADMIN_PASSWORD || crypto.randomBytes(9).toString("base64url");
   const pwHash = bcrypt.hashSync(password, BCRYPT_COST);
   const now = new Date().toISOString();
-  db.prepare(
-    "INSERT INTO web_users (username, description, pw_hash, role, created) VALUES (?, ?, ?, ?, ?)"
-  ).run("admin", "Administrator", pwHash, "admin", now);
+  state.users.push({
+    id: state.nextUserId++,
+    username: "admin",
+    description: "Administrator",
+    pw_hash: pwHash,
+    role: "admin",
+    created: now,
+    updated: null,
+  });
+  persist();
 
   console.log("=".repeat(60));
   console.log("Webinterface: Erster Start, Admin-Account angelegt.");
@@ -118,16 +126,21 @@ function scopesForUser(row) {
   return [{ scopeId: 1, scopeName: "", permissions: roleToPermissions(row.role) }];
 }
 
+function findUserById(id) {
+  const numId = Number(id);
+  return state.users.find((u) => u.id === numId) || null;
+}
+
 // ---- auth (login / session) ----
 
 function getUserByUsername(username) {
-  const row = db.prepare("SELECT id, username, pw_hash, role FROM web_users WHERE username = ?").get(username);
+  const row = state.users.find((u) => u.username === username);
   if (!row) return null;
   return { id: row.id, username: row.username, pwHash: row.pw_hash, role: row.role };
 }
 
 function getUserById(id) {
-  const row = db.prepare("SELECT id, username, role FROM web_users WHERE id = ?").get(Number(id));
+  const row = findUserById(id);
   if (!row) return null;
   return { id: row.id, username: row.username, role: row.role };
 }
@@ -138,7 +151,7 @@ function verifyUserPassword(user, password) {
 }
 
 function getScopesByUserId(userId) {
-  const row = db.prepare("SELECT id, username, role FROM web_users WHERE id = ?").get(Number(userId));
+  const row = findUserById(userId);
   if (!row) return [];
   return scopesForUser(row).map((s) => s.permissions);
 }
@@ -151,27 +164,29 @@ function getScopesByGroupId() {
 }
 
 function createSession(userId, sid, expiresAt) {
-  db.prepare("INSERT INTO web_sessions (sid, user_id, expires) VALUES (?, ?, ?)").run(sid, Number(userId), expiresAt);
+  state.sessions.push({ sid, user_id: Number(userId), expires: expiresAt });
+  persist();
 }
 
 function getSessionBySid(sid) {
-  const row = db.prepare("SELECT user_id, expires FROM web_sessions WHERE sid = ?").get(sid);
+  const row = state.sessions.find((s) => s.sid === sid);
   if (!row) return null;
   return { userId: row.user_id, expiresAt: row.expires };
 }
 
 function deleteSession(sid) {
-  db.prepare("DELETE FROM web_sessions WHERE sid = ?").run(sid);
+  state.sessions = state.sessions.filter((s) => s.sid !== sid);
+  persist();
 }
 
 // ---- admin: user management ----
 
 function getUsers() {
-  return db.prepare("SELECT id, username, description, role FROM web_users ORDER BY username").all().map(rowToUserSummary);
+  return [...state.users].sort((a, b) => a.username.localeCompare(b.username)).map(rowToUserSummary);
 }
 
 function getUserWithScopes(id) {
-  const row = db.prepare("SELECT id, username, description, role FROM web_users WHERE id = ?").get(Number(id));
+  const row = findUserById(id);
   if (!row) return null;
   return { ...rowToUserSummary(row), scopes: scopesForUser(row) };
 }
@@ -179,41 +194,52 @@ function getUserWithScopes(id) {
 function createUser(name, description, password, role) {
   const pwHash = bcrypt.hashSync(password, BCRYPT_COST);
   const now = new Date().toISOString();
-  const info = db
-    .prepare("INSERT INTO web_users (username, description, pw_hash, role, created) VALUES (?, ?, ?, ?, ?)")
-    .run((name || "").trim(), description || "", pwHash, ROLES.includes(role) ? role : "readonly", now);
-  return getUserWithScopes(info.lastInsertRowid);
+  const row = {
+    id: state.nextUserId++,
+    username: (name || "").trim(),
+    description: description || "",
+    pw_hash: pwHash,
+    role: ROLES.includes(role) ? role : "readonly",
+    created: now,
+    updated: null,
+  };
+  state.users.push(row);
+  persist();
+  return getUserWithScopes(row.id);
 }
 
 function updateUser(id, name, description) {
-  const row = db.prepare("SELECT id FROM web_users WHERE id = ?").get(Number(id));
+  const row = findUserById(id);
   if (!row) return null;
-  db.prepare("UPDATE web_users SET username = ?, description = ?, updated = ? WHERE id = ?").run(
-    (name || "").trim(),
-    description || "",
-    new Date().toISOString(),
-    Number(id)
-  );
+  row.username = (name || "").trim();
+  row.description = description || "";
+  row.updated = new Date().toISOString();
+  persist();
   return getUserWithScopes(id);
 }
 
 function deleteUser(id) {
-  const row = db.prepare("SELECT id FROM web_users WHERE id = ?").get(Number(id));
+  const row = findUserById(id);
   if (!row) return false;
-  db.prepare("DELETE FROM web_users WHERE id = ?").run(Number(id));
+  const numId = Number(id);
+  state.users = state.users.filter((u) => u.id !== numId);
+  state.sessions = state.sessions.filter((s) => s.user_id !== numId);
+  state.tokens = state.tokens.filter((t) => t.user_id !== numId);
+  persist();
   return true;
 }
 
 function changeUserPassword(id, password) {
-  const row = db.prepare("SELECT id FROM web_users WHERE id = ?").get(Number(id));
+  const row = findUserById(id);
   if (!row) return false;
-  const pwHash = bcrypt.hashSync(password, BCRYPT_COST);
-  db.prepare("UPDATE web_users SET pw_hash = ?, updated = ? WHERE id = ?").run(pwHash, new Date().toISOString(), Number(id));
+  row.pw_hash = bcrypt.hashSync(password, BCRYPT_COST);
+  row.updated = new Date().toISOString();
+  persist();
   return true;
 }
 
 function getUserPermissions(id) {
-  const row = db.prepare("SELECT id, username, role FROM web_users WHERE id = ?").get(Number(id));
+  const row = findUserById(id);
   if (!row) return [];
   return scopesForUser(row);
 }
@@ -222,10 +248,12 @@ function getUserPermissions(id) {
 // a permissions-shaped object carrying { role }, to stay call-compatible
 // with the old (scopeId, permissions) signature used by routes/auth.js.
 function setUserPermissions(id, scopeId, permissions) {
-  const userId = Number(id);
+  const row = findUserById(id);
   const role = typeof permissions === "string" ? permissions : permissions?.role;
-  if (ROLES.includes(role)) {
-    db.prepare("UPDATE web_users SET role = ?, updated = ? WHERE id = ?").run(role, new Date().toISOString(), userId);
+  if (row && ROLES.includes(role)) {
+    row.role = role;
+    row.updated = new Date().toISOString();
+    persist();
   }
   return getUserPermissions(id);
 }
@@ -237,27 +265,36 @@ function rowToToken(row) {
 }
 
 function getTokensByUserId(userId) {
-  return db
-    .prepare("SELECT id, user_id, token, description, created, expires FROM web_tokens WHERE user_id = ? ORDER BY created DESC")
-    .all(Number(userId))
+  const numId = Number(userId);
+  return state.tokens
+    .filter((t) => t.user_id === numId)
+    .sort((a, b) => (a.created < b.created ? 1 : a.created > b.created ? -1 : 0))
     .map(rowToToken);
 }
 
 function createToken(userId, scopeId, description) {
   const token = crypto.randomBytes(32).toString("hex");
   const now = new Date().toISOString();
-  const info = db
-    .prepare("INSERT INTO web_tokens (user_id, token, description, created) VALUES (?, ?, ?, ?)")
-    .run(Number(userId), token, description || "", now);
-  const row = db
-    .prepare("SELECT id, user_id, token, description, created, expires FROM web_tokens WHERE id = ?")
-    .get(info.lastInsertRowid);
+  const row = {
+    id: state.nextTokenId++,
+    user_id: Number(userId),
+    token,
+    description: description || "",
+    created: now,
+    expires: null,
+  };
+  state.tokens.push(row);
+  persist();
   return rowToToken(row);
 }
 
 function deleteToken(tokenId) {
-  const info = db.prepare("DELETE FROM web_tokens WHERE id = ?").run(Number(tokenId));
-  return info.changes > 0;
+  const numId = Number(tokenId);
+  const before = state.tokens.length;
+  state.tokens = state.tokens.filter((t) => t.id !== numId);
+  const changed = state.tokens.length !== before;
+  if (changed) persist();
+  return changed;
 }
 
 module.exports = {

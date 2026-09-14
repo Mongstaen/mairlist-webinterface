@@ -41,6 +41,7 @@ test-results/
 *.test.mldb
 
 # Webinterface Auth-Datenbank (eigene User/Sessions/Tokens)
+server/webinterface-auth.json
 server/webinterface-auth.db*
 
 # Panel-Einstellungen (generiert)
