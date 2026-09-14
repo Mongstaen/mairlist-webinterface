@@ -13,6 +13,11 @@ services:
       - "8841:8841"
     env_file:
       - server/.env
+    environment:
+      # Point the app at the persisted volume below. Override DATA_SOURCE
+      # in server/.env if you use DATA_SOURCE=api instead (no DB_PATH needed).
+      DB_PATH: /data/mairlist.mldb
+      UPLOAD_BASE_DIR: /data/uploads
     volumes:
       - mairlist-data:/data
 

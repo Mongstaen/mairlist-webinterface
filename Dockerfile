@@ -19,8 +19,8 @@ ARG REPO_REF=main
 WORKDIR /build
 RUN git clone --depth 1 --branch "${REPO_REF}" "${REPO_URL}" .
 
-RUN cd server && npm install --production
-RUN cd frontend && npm install && npm run build
+RUN cd server && npm ci --omit=dev
+RUN cd frontend && npm ci && npm run build
 
 FROM node:20-bookworm-slim AS runtime
 
@@ -29,10 +29,18 @@ WORKDIR /app
 COPY --from=builder /build/server ./server
 COPY --from=builder /build/frontend/dist ./frontend/dist
 
+# Writable mount point for the .mldb file and uploads (see docker-compose.yml).
+# Owned by the non-root "node" user this image runs as.
+RUN mkdir -p /data && chown -R node:node /data /app
+
 WORKDIR /app/server
+USER node
 
 ENV NODE_ENV=production
 ENV PORT=8841
 EXPOSE 8841
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+    CMD node -e "fetch('http://localhost:'+(process.env.PORT||8841)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "index.js"]
