@@ -12,7 +12,7 @@ const toDateKey = (date) => {
   return `${y}-${m}-${d}`;
 };
 
-// "vor 3 Tagen" / "vor 2 Monaten" / "gerade eben" relative to now.
+// "3 days ago" / "2 months ago" / "just now" relative to now.
 export function formatRelativeTime(iso, now = new Date()) {
   if (!iso) return "-";
   const then = new Date(iso);
@@ -20,22 +20,22 @@ export function formatRelativeTime(iso, now = new Date()) {
 
   const diffMs = now.getTime() - then.getTime();
   const diffSec = Math.round(diffMs / 1000);
-  if (diffSec < 60) return "gerade eben";
+  if (diffSec < 60) return "just now";
 
   const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `vor ${diffMin} Min.`;
+  if (diffMin < 60) return `${diffMin} min ago`;
 
   const diffH = Math.round(diffMin / 60);
-  if (diffH < 24) return `vor ${diffH} Std.`;
+  if (diffH < 24) return `${diffH} h ago`;
 
   const diffDays = Math.round(diffH / 24);
-  if (diffDays < 30) return `vor ${diffDays} Tag${diffDays === 1 ? "" : "en"}`;
+  if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
 
   const diffMonths = Math.round(diffDays / 30);
-  if (diffMonths < 12) return `vor ${diffMonths} Monat${diffMonths === 1 ? "" : "en"}`;
+  if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? "" : "s"} ago`;
 
   const diffYears = Math.round(diffMonths / 12);
-  return `vor ${diffYears} Jahr${diffYears === 1 ? "" : "en"}`;
+  return `${diffYears} year${diffYears === 1 ? "" : "s"} ago`;
 }
 
 export function formatDate(iso) {
@@ -48,19 +48,19 @@ export function formatDate(iso) {
   });
 }
 
-// Rounds a day-span into something readable ("alle 4 Tage", "über 8 Monate").
+// Rounds a day-span into something readable ("every 4 days", "over 8 months").
 function formatDaySpan(days) {
-  if (days < 1) return "täglich";
-  if (days < 30) return `alle ${Math.round(days)} Tage`;
+  if (days < 1) return "daily";
+  if (days < 30) return `every ${Math.round(days)} days`;
   const months = days / 30;
-  if (months < 12) return `alle ${Math.round(months)} Monate`;
+  if (months < 12) return `every ${Math.round(months)} months`;
   const years = months / 12;
-  return `alle ${Math.round(years * 10) / 10} Jahre`;
+  return `every ${Math.round(years * 10) / 10} years`;
 }
 
 /**
  * Aggregates raw history entries ({ playedAt }) into everything the
- * Verlauf tab needs: summary tiles, a day-bucketed heatmap grid, and an
+ * History tab needs: summary tiles, a day-bucketed heatmap grid, and an
  * hour-of-day distribution. Returns null for an empty history.
  */
 export function aggregateHistory(history, now = new Date()) {
@@ -91,7 +91,7 @@ export function aggregateHistory(history, now = new Date()) {
     total: timestamps.length,
     lastPlayed: formatRelativeTime(last.toISOString(), now),
     firstPlayed: formatDate(first.toISOString()),
-    firstPlayedSpan: spanDays >= 30 ? formatDaySpan(spanDays).replace("alle ", "über ") : null,
+    firstPlayedSpan: spanDays >= 30 ? formatDaySpan(spanDays).replace("every ", "over ") : null,
     avgInterval: timestamps.length > 1 ? formatDaySpan(avgIntervalDays) : "-",
   };
 

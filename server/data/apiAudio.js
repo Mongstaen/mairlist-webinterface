@@ -1,6 +1,6 @@
 // ---- audio streaming ----
 //
-// Storages/Audio-Dateien (see docs/MAIRLISTDB-API.md): audio bytes live at
+// Storages/audio files (see docs/MAIRLISTDB-API.md): audio bytes live at
 // GET /api/v1/storages/<storageId>/files/<filename>?quality=default|low.
 // mapApiItemToInternal() doesn't populate storageId (the API has no such
 // field on the item itself) — instead the full "/storages/<id>/files/<name>"

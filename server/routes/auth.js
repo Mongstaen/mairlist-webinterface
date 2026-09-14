@@ -8,16 +8,16 @@ const { requireAuth, requireScope } = require("../middleware/auth");
 const {
   requireId, requireText, optionalText, requireObject, wrapValidation,
 } = require("../lib/validate");
-// Einzige Quelle der Wahrheit fuer die fuenf festen Rollen. Bisher wurde ein
-// ungueltiger Wert in setUserPermissions() stillschweigend verworfen - hier
-// gibt es dafuer jetzt einen 400 mit klarer Meldung.
+// Single source of truth for the five fixed roles. Previously an
+// invalid value was silently dropped in setUserPermissions() - now
+// there's a 400 with a clear message for that.
 const { ROLES } = require("../data/webAuthDb");
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8h
 
-// Bewusst eine eigene Variable statt NODE_ENV: das Webinterface laeuft
-// produktiv auch ueber reines HTTP, wo ein secure-Cookie das Login
-// unmoeglich machen wuerde.
+// Deliberately a dedicated variable instead of NODE_ENV: the webinterface
+// also runs in production over plain HTTP, where a secure cookie would
+// make login impossible.
 const COOKIE_SECURE = process.env.COOKIE_SECURE === "true";
 
 const SESSION_COOKIE_OPTIONS = {
@@ -26,15 +26,15 @@ const SESSION_COOKIE_OPTIONS = {
   secure: COOKIE_SECURE,
 };
 
-// Brute-Force-Schutz. Bewusst In-Memory und ohne zusaetzliche Dependency:
-// das Webinterface laeuft als Einzelinstanz fuer ein kleines Team. Die
-// Zaehler gehen bei einem Serverneustart verloren - fuer diesen Einsatzzweck
-// akzeptiert, bei mehreren Instanzen braeuchte es einen gemeinsamen Store.
+// Brute-force protection. Deliberately in-memory and without an
+// additional dependency: the webinterface runs as a single instance for
+// a small team. The counters are lost on a server restart - accepted for
+// this use case; multiple instances would need a shared store.
 const LOGIN_MAX_ATTEMPTS = Number(process.env.LOGIN_MAX_ATTEMPTS) || 5;
 const LOGIN_LOCKOUT_MS = (Number(process.env.LOGIN_LOCKOUT_MINUTES) || 15) * 60 * 1000;
 
-// Getrennt nach Benutzername und IP, weil sonst entweder viele Namen von
-// einer IP oder ein Name von vielen IPs durchprobiert werden koennten.
+// Separated by username and IP, because otherwise either many names
+// could be tried from one IP, or one name from many IPs.
 const loginAttempts = new Map();
 
 function attemptKeys(username, ip) {
@@ -70,8 +70,8 @@ function clearAttempts(username, ip) {
   for (const key of attemptKeys(username, ip)) loginAttempts.delete(key);
 }
 
-// Abgelaufene Eintraege verfallen zwar auch beim Zugriff, aber ohne
-// periodischen Cleanup wuechse die Map bei gestreuten Angriffen unbegrenzt.
+// Expired entries also lapse on access, but without periodic cleanup
+// the map would grow unbounded under distributed attacks.
 const attemptCleanup = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of loginAttempts) {
@@ -90,24 +90,24 @@ router.post("/login", (req, res, next) => {
     const body = req.body;
     const isObject = body !== null && typeof body === "object" && !Array.isArray(body);
     const { username, password } = isObject ? body : {};
-    // Beides muss ein nicht-leerer String sein.
+    // Both must be a non-empty string.
     if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
-      return res.status(400).json({ error: "Benutzername und Passwort sind erforderlich" });
+      return res.status(400).json({ error: "Username and password are required" });
     }
-    // Laengenbegrenzung haelt sehr grosse Eingaben vom teuren bcrypt-Vergleich fern.
+    // Length limit keeps very large inputs away from the expensive bcrypt comparison.
     if (username.length > 200 || password.length > 200) {
-      return res.status(400).json({ error: "Benutzername oder Passwort ist zu lang" });
+      return res.status(400).json({ error: "Username or password is too long" });
     }
 
-    // Neutrale Meldung, damit die Sperre nicht verraet ob es den Namen gibt.
+    // Neutral message so the lockout doesn't reveal whether the name exists.
     if (isLockedOut(username, req.ip)) {
-      return res.status(429).json({ error: "Zu viele Fehlversuche, bitte später erneut versuchen" });
+      return res.status(429).json({ error: "Too many failed attempts, please try again later" });
     }
 
     const user = repo.getUserByUsername(username);
     if (!user || !repo.verifyUserPassword(user, password)) {
       registerFailedAttempt(username, req.ip);
-      return res.status(401).json({ error: "Ungültige Zugangsdaten" });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
 
     clearAttempts(username, req.ip);
@@ -152,55 +152,55 @@ router.get("/admin/users", requireAuth, requireScope("admin"), (req, res, next) 
 
 router.get("/admin/users/:id", requireAuth, requireScope("admin"), wrapValidation((req, res) => {
   const user = repo.getUserWithScopes(requireId(req.params.id, "id"));
-  if (!user) return res.status(404).json({ error: "Benutzer nicht gefunden" });
+  if (!user) return res.status(404).json({ error: "User not found" });
   res.json(user);
 }));
 
 router.post("/admin/users", requireAuth, requireScope("admin"), wrapValidation((req, res) => {
   const body = requireObject(req.body);
   if (!body.name || !body.password) {
-    return res.status(400).json({ error: "Name und Passwort sind erforderlich" });
+    return res.status(400).json({ error: "Name and password are required" });
   }
   const name = requireText(body.name, "Name", { maxLength: 200 });
-  const password = requireText(body.password, "Passwort", { maxLength: 200 });
+  const password = requireText(body.password, "Password", { maxLength: 200 });
   const description = optionalText(body.description, "description");
   const role = optionalText(body.role, "role", { maxLength: 50 });
   if (role !== undefined && !ROLES.includes(role)) {
-    return res.status(400).json({ error: `role muss einer von ${ROLES.join(", ")} sein` });
+    return res.status(400).json({ error: `role must be one of ${ROLES.join(", ")}` });
   }
   res.status(201).json(repo.createUser(name, description, password, role));
 }));
 
 router.put("/admin/users/:id", requireAuth, requireScope("admin"), wrapValidation((req, res) => {
   const body = requireObject(req.body);
-  if (!body.name) return res.status(400).json({ error: "Name ist erforderlich" });
+  if (!body.name) return res.status(400).json({ error: "Name is required" });
   const user = repo.updateUser(
     requireId(req.params.id, "id"),
     requireText(body.name, "Name", { maxLength: 200 }),
     optionalText(body.description, "description")
   );
-  if (!user) return res.status(404).json({ error: "Benutzer nicht gefunden" });
+  if (!user) return res.status(404).json({ error: "User not found" });
   res.json(user);
 }));
 
 router.delete("/admin/users/:id", requireAuth, requireScope("admin"), wrapValidation((req, res) => {
   const id = requireId(req.params.id, "id");
   if (String(req.user.id) === id) {
-    return res.status(400).json({ error: "Der eigene Account kann nicht gelöscht werden" });
+    return res.status(400).json({ error: "You cannot delete your own account" });
   }
   const deleted = repo.deleteUser(id);
-  if (!deleted) return res.status(404).json({ error: "Benutzer nicht gefunden" });
+  if (!deleted) return res.status(404).json({ error: "User not found" });
   res.status(204).end();
 }));
 
 router.put("/admin/users/:id/password", requireAuth, requireScope("admin"), wrapValidation((req, res) => {
   const body = requireObject(req.body);
-  if (!body.password) return res.status(400).json({ error: "Passwort ist erforderlich" });
+  if (!body.password) return res.status(400).json({ error: "Password is required" });
   const ok = repo.changeUserPassword(
     requireId(req.params.id, "id"),
-    requireText(body.password, "Passwort", { maxLength: 200 })
+    requireText(body.password, "Password", { maxLength: 200 })
   );
-  if (!ok) return res.status(404).json({ error: "Benutzer nicht gefunden" });
+  if (!ok) return res.status(404).json({ error: "User not found" });
   res.status(204).end();
 }));
 
@@ -208,14 +208,14 @@ router.put("/admin/users/:id/permissions", requireAuth, requireScope("admin"), w
   const { scopeId, permissions, role } = requireObject(req.body);
   const nextRole = role || permissions?.role;
   if (!nextRole) {
-    return res.status(400).json({ error: "role ist erforderlich" });
+    return res.status(400).json({ error: "role is required" });
   }
   const id = requireId(req.params.id, "id");
   const user = repo.getUserWithScopes(id);
-  if (!user) return res.status(404).json({ error: "Benutzer nicht gefunden" });
+  if (!user) return res.status(404).json({ error: "User not found" });
   const validRole = requireText(nextRole, "role", { maxLength: 50 });
   if (!ROLES.includes(validRole)) {
-    return res.status(400).json({ error: `role muss einer von ${ROLES.join(", ")} sein` });
+    return res.status(400).json({ error: `role must be one of ${ROLES.join(", ")}` });
   }
   res.json(repo.setUserPermissions(id, scopeId ?? 1, validRole));
 }));
@@ -225,21 +225,21 @@ router.put("/admin/users/:id/permissions", requireAuth, requireScope("admin"), w
 router.get("/admin/users/:id/tokens", requireAuth, requireScope("admin"), wrapValidation((req, res) => {
   const id = requireId(req.params.id, "id");
   const user = repo.getUserWithScopes(id);
-  if (!user) return res.status(404).json({ error: "Benutzer nicht gefunden" });
+  if (!user) return res.status(404).json({ error: "User not found" });
   res.json(repo.getTokensByUserId(id));
 }));
 
 router.post("/admin/users/:id/tokens", requireAuth, requireScope("admin"), wrapValidation((req, res) => {
   const id = requireId(req.params.id, "id");
   const user = repo.getUserWithScopes(id);
-  if (!user) return res.status(404).json({ error: "Benutzer nicht gefunden" });
+  if (!user) return res.status(404).json({ error: "User not found" });
   const scopeId = req.body?.scopeId ?? user.scopes?.[0]?.scopeId ?? 1;
   res.status(201).json(repo.createToken(id, scopeId));
 }));
 
 router.delete("/admin/users/:id/tokens/:tokenId", requireAuth, requireScope("admin"), wrapValidation((req, res) => {
   const deleted = repo.deleteToken(requireId(req.params.tokenId, "tokenId"));
-  if (!deleted) return res.status(404).json({ error: "Token nicht gefunden" });
+  if (!deleted) return res.status(404).json({ error: "Token not found" });
   res.status(204).end();
 }));
 

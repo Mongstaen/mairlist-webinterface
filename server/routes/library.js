@@ -33,8 +33,8 @@ const AUDIO_CONTENT_TYPES = {
   ".ogg": "audio/ogg",
 };
 
-// Felder die ein Client bei createItem/updateItem setzen darf.
-// Schützt vor versehentlichem Überschreiben von id, createdAt etc.
+// Fields a client is allowed to set on createItem/updateItem.
+// Protects against accidentally overwriting id, createdAt etc.
 const ITEM_WRITABLE_FIELDS = new Set([
   "type", "containerType", "title", "artist", "duration", "endTime",
   "storageId", "relativePath", "folderId", "comment", "color", "cover",
@@ -42,20 +42,20 @@ const ITEM_WRITABLE_FIELDS = new Set([
   "scheduledStart", "scheduledEnd", "scheduledDays",
 ]);
 
-// Multer: max. 500 MB pro Datei, nur erlaubte Erweiterungen
+// Multer: max. 500 MB per file, only allowed extensions
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 500 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ext = file.originalname.split(".").pop().toLowerCase();
     if (!ALLOWED_AUDIO_EXTENSIONS.has(ext)) {
-      return cb(new Error("Nicht unterstützter Dateityp"));
+      return cb(new Error("Unsupported file type"));
     }
     cb(null, true);
   },
 });
 
-// Hilfsfunktion: filtert req.body auf ITEM_WRITABLE_FIELDS
+// Helper: filters req.body down to ITEM_WRITABLE_FIELDS
 function pickWritableFields(body) {
   return Object.fromEntries(
     Object.entries(body).filter(([key]) => ITEM_WRITABLE_FIELDS.has(key))
@@ -88,11 +88,11 @@ router.put("/folders/:id", requireScope("library.write"), wrapValidation(async (
 // PUT /api/folders/:id/move -> move a folder under a new parent. Body: { newParentId }
 router.put("/folders/:id/move", requireScope("library.write"), wrapValidation(async (req, res) => {
   const body = requireObject(req.body);
-  // newParentId darf null sein: das verschiebt den Ordner auf die oberste Ebene.
+  // newParentId may be null: that moves the folder to the top level.
   const newParentId = body.newParentId === null ? null : optionalId(body.newParentId, "newParentId");
   const folder = await repo.moveFolder(requireId(req.params.id, "folderId"), newParentId);
   if (folder === null) return res.status(404).json({ error: "Folder not found" });
-  if (folder === false) return res.status(400).json({ error: "Ordner kann nicht in sich selbst oder einen Unterordner verschoben werden" });
+  if (folder === false) return res.status(400).json({ error: "Folder cannot be moved into itself or a subfolder" });
   res.json(folder);
 }));
 
@@ -100,7 +100,7 @@ router.put("/folders/:id/move", requireScope("library.write"), wrapValidation(as
 router.delete("/folders/:id", requireScope("library.write"), wrapValidation(async (req, res) => {
   const result = await repo.deleteFolder(requireId(req.params.id, "folderId"));
   if (result === "not_found") return res.status(404).json({ error: "Folder not found" });
-  if (result === "not_empty") return res.status(400).json({ error: "Ordner enthält noch Elemente oder Unterordner" });
+  if (result === "not_empty") return res.status(400).json({ error: "Folder still contains items or subfolders" });
   res.status(204).end();
 }));
 
@@ -121,7 +121,7 @@ router.get("/storages", requireScope("library.read"), async (req, res, next) => 
 router.post("/storages", requireScope("admin"), wrapValidation((req, res) => {
   const body = requireObject(req.body);
   const name = requireText(body.name, "name");
-  // Pfade duerfen laenger sein als ein normales Freitextfeld.
+  // Paths may be longer than a normal free-text field.
   const location = optionalText(body.path, "path", { maxLength: 4000 });
   const storage = repo.createStorage(name, location);
   res.status(201).json(storage);
@@ -142,7 +142,7 @@ router.delete("/storages/:id", requireScope("admin"), wrapValidation((req, res) 
   const result = repo.deleteStorage(requireId(req.params.id, "storageId"));
   if (result.status === "not_found") return res.status(404).json({ error: "Storage not found" });
   if (result.status === "in_use") {
-    return res.status(409).json({ error: `Storage hat noch ${result.count} Items` });
+    return res.status(409).json({ error: `Storage still has ${result.count} items` });
   }
   res.status(204).end();
 }));
@@ -206,7 +206,7 @@ router.get("/items/:id/audio", requireScope("library.read"), async (req, res, ne
 
       const quality = req.query.quality === "low" ? "low" : "default";
       const result = await apiRepo.getAudioStream(item, quality);
-      if (!result) return res.status(404).json({ error: "Für dieses Element ist keine Audiodatei hinterlegt" });
+      if (!result) return res.status(404).json({ error: "No audio file is stored for this element" });
 
       const contentType = AUDIO_CONTENT_TYPES[path.extname(item.relativePath || "").toLowerCase()] || result.contentType;
       res.writeHead(200, {
@@ -223,15 +223,15 @@ router.get("/items/:id/audio", requireScope("library.read"), async (req, res, ne
     if (!item) return res.status(404).json({ error: "Item not found" });
 
     const filePath = repo.resolveAudioPath(itemId);
-    if (!filePath) return res.status(404).json({ error: "Für dieses Element ist keine Audiodatei hinterlegt" });
+    if (!filePath) return res.status(404).json({ error: "No audio file is stored for this element" });
 
-    // Path-Traversal-Schutz: aufgelöster Pfad muss innerhalb von AUDIO_BASE_DIR liegen
+    // Path-traversal protection: resolved path must lie within AUDIO_BASE_DIR
     const baseDir = process.env.AUDIO_BASE_DIR;
     if (baseDir) {
       const resolvedBase = path.resolve(baseDir);
       const resolvedFile = path.resolve(filePath);
       if (!resolvedFile.startsWith(resolvedBase + path.sep)) {
-        return res.status(403).json({ error: "Zugriff verweigert" });
+        return res.status(403).json({ error: "Access denied" });
       }
     }
 
@@ -239,7 +239,7 @@ router.get("/items/:id/audio", requireScope("library.read"), async (req, res, ne
     try {
       stat = fs.statSync(filePath);
     } catch {
-      return res.status(404).json({ error: "Audiodatei nicht gefunden" });
+      return res.status(404).json({ error: "Audio file not found" });
     }
 
     const contentType = AUDIO_CONTENT_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
@@ -316,7 +316,7 @@ router.put("/items/:id", requireScope("library.write"), wrapValidation(async (re
 // PUT /api/items/:id/folder -> move an item into a (virtual) folder. Body: { folderId }
 router.put("/items/:id/folder", requireScope("library.write"), wrapValidation(async (req, res) => {
   const body = requireObject(req.body);
-  // folderId darf null sein: das nimmt das Item aus jedem Ordner heraus.
+  // folderId may be null: that removes the item from every folder.
   const folderId = body.folderId === null ? null : optionalId(body.folderId, "folderId");
   const item = await repo.moveItemToFolder(requireId(req.params.id, "itemId"), folderId);
   if (!item) return res.status(404).json({ error: "Item not found" });
@@ -333,7 +333,7 @@ router.put("/items/:id/container-contents", requireScope("library.write"), wrapV
   const itemIds = requireIdArray(body.itemIds, "itemIds");
 
   if (process.env.DATA_SOURCE !== "api" || typeof repo.updateContainerContents !== "function") {
-    return res.status(400).json({ error: "Container-Bearbeitung ist im aktuellen Modus nicht verfügbar" });
+    return res.status(400).json({ error: "Container editing is not available in the current mode" });
   }
 
   const item = await repo.updateContainerContents(itemId, itemIds);
@@ -352,13 +352,13 @@ router.put("/items/:id/region-container-contents", requireScope("library.write")
   const regions = requireRegionsMap(body.regions, "regions");
 
   if (process.env.DATA_SOURCE !== "api" || typeof repo.updateRegionContainerContents !== "function") {
-    return res.status(400).json({ error: "Container-Bearbeitung ist im aktuellen Modus nicht verfügbar" });
+    return res.status(400).json({ error: "Container editing is not available in the current mode" });
   }
 
   const current = await repo.getItemById(itemId);
   if (!current) return res.status(404).json({ error: "Item not found" });
   if (current.containerType !== "RegionContainer") {
-    return res.status(400).json({ error: "Item ist kein Regionen-Container" });
+    return res.status(400).json({ error: "Item is not a region container" });
   }
 
   const item = await repo.updateRegionContainerContents(itemId, regions);
@@ -371,11 +371,11 @@ router.put("/items/:id/region-container-contents", requireScope("library.write")
 router.post("/upload", requireScope("library.write"), (req, res, next) => {
   upload.single("file")(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message });
-    if (!req.file) return res.status(400).json({ error: "Keine Datei übermittelt" });
+    if (!req.file) return res.status(400).json({ error: "No file submitted" });
 
     let storageId, title;
     try {
-      const body = requireObject(req.body, "Formulardaten");
+      const body = requireObject(req.body, "form data");
       storageId = requireId(body.storageId, "storageId");
       title = optionalText(body.title, "title");
     } catch (e) {
@@ -384,7 +384,7 @@ router.post("/upload", requireScope("library.write"), (req, res, next) => {
 
     try {
       const item = repo.uploadFile(storageId, req.file.originalname, req.file.buffer, title);
-      if (!item) return res.status(400).json({ error: "Unbekannter Storage" });
+      if (!item) return res.status(400).json({ error: "Unknown storage" });
       res.status(201).json(item);
     } catch (e) { next(e); }
   });
@@ -408,10 +408,10 @@ router.get("/playlists/:id", requireScope("library.read"), wrapValidation(async 
 // safe (await on a non-Promise resolves immediately).
 router.put("/playlists/:id/reorder", requireScope("library.write"), wrapValidation(async (req, res) => {
   const body = requireObject(req.body);
-  if (!Array.isArray(body.order)) return res.status(400).json({ error: "order (Array) ist erforderlich" });
+  if (!Array.isArray(body.order)) return res.status(400).json({ error: "order (array) is required" });
   const order = body.order.map((pos) => requirePosition(pos, "order"));
   const playlist = await repo.reorderPlaylist(requirePlaylistId(req.params.id), order);
-  if (!playlist) return res.status(400).json({ error: "Playlist oder Reihenfolge ungültig" });
+  if (!playlist) return res.status(400).json({ error: "Playlist or order invalid" });
   res.json(playlist);
 }));
 
@@ -419,11 +419,11 @@ router.put("/playlists/:id/reorder", requireScope("library.write"), wrapValidati
 router.post("/playlists/:id/items", requireScope("library.write"), wrapValidation(async (req, res) => {
   const body = requireObject(req.body);
   const itemId = requireId(body.itemId, "itemId");
-  // afterPosition 0 heisst "ganz an den Anfang", fehlend "ans Ende" -
-  // deshalb hier optionalCount (ab 0) statt requirePosition (ab 1).
+  // afterPosition 0 means "insert at the very front", missing means "at the end" -
+  // hence optionalCount (starting at 0) here instead of requirePosition (starting at 1).
   const afterPosition = optionalCount(body.afterPosition, "afterPosition", { fallback: undefined });
   const playlist = await repo.insertPlaylistItem(requirePlaylistId(req.params.id), { itemId, afterPosition });
-  if (!playlist) return res.status(400).json({ error: "Playlist oder Item ungültig" });
+  if (!playlist) return res.status(400).json({ error: "Playlist or item invalid" });
   res.status(201).json(playlist);
 }));
 
@@ -433,7 +433,7 @@ router.delete("/playlists/:id/items/:position", requireScope("library.write"), w
     requirePlaylistId(req.params.id),
     requirePosition(req.params.position)
   );
-  if (!playlist) return res.status(404).json({ error: "Playlist oder Eintrag nicht gefunden" });
+  if (!playlist) return res.status(404).json({ error: "Playlist or entry not found" });
   res.json(playlist);
 }));
 
@@ -447,7 +447,7 @@ router.put("/playlists/:id/items/:position/overrides", requireScope("library.wri
     requirePosition(req.params.position),
     overrides
   );
-  if (!playlist) return res.status(404).json({ error: "Playlist oder Eintrag nicht gefunden" });
+  if (!playlist) return res.status(404).json({ error: "Playlist or entry not found" });
   res.json(playlist);
 }));
 

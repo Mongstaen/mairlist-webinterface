@@ -33,7 +33,7 @@ function loadScopesForUser(userId) {
 
 function requireAuth(req, res, next) {
   const sid = req.cookies?.session;
-  if (!sid) return res.status(401).json({ error: "Nicht angemeldet" });
+  if (!sid) return res.status(401).json({ error: "Not logged in" });
 
   const session = repo.getSessionBySid(sid);
   if (!session || new Date(session.expiresAt).getTime() <= Date.now()) {
@@ -41,7 +41,7 @@ function requireAuth(req, res, next) {
   }
 
   const user = repo.getUserById(session.userId);
-  if (!user) return res.status(401).json({ error: "Nicht angemeldet" });
+  if (!user) return res.status(401).json({ error: "Not logged in" });
 
   const scopes = loadScopesForUser(session.userId);
   req.user = { id: user.id, username: user.username, scopes };

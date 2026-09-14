@@ -96,7 +96,7 @@ class ApiNotFoundError extends Error {
 
 class ApiUnreachableError extends Error {
   constructor(url, cause) {
-    super(`mAirListDB Server nicht erreichbar unter ${url}`);
+    super(`mAirListDB server unreachable at ${url}`);
     this.name = "ApiUnreachableError";
     this.cause = cause;
   }
@@ -118,7 +118,7 @@ function authHeader() {
 //
 // `body` is sent as JSON. Some POST endpoints require
 // application/x-www-form-urlencoded instead (see docs/MAIRLISTDB-API.md,
-// "POST-Endpunkte (form-urlencoded)"); those pass `formBody` — an already
+// "POST endpoints (form-urlencoded)"); those pass `formBody` — an already
 // encoded body string — instead of `body`. Both go through the same
 // concurrency limiter and retry logic here; nothing bypasses apiRequest().
 async function apiRequest(method, path, { query = {}, rawFlags = [], body, formBody, withStation = true } = {}) {
@@ -201,7 +201,7 @@ function warnOnceUnexpectedShape(name) {
 // same way regardless of DATA_SOURCE.
 function notImplemented(name) {
   return () => {
-    throw new Error(`Diese Funktion ist im api-Modus noch nicht verfügbar: ${name}`);
+    throw new Error(`This function is not yet available in api mode: ${name}`);
   };
 }
 
@@ -218,7 +218,7 @@ function emptyStub(name, emptyValue) {
   return () => {
     if (!warnedOnce.has(name)) {
       warnedOnce.add(name);
-      console.warn(`[apiRepository] ${name}() ist im api-Modus noch nicht implementiert, liefert leeren Wert`);
+      console.warn(`[apiRepository] ${name}() is not yet implemented in api mode, returning an empty value`);
     }
     // Return a fresh deep copy each call so callers can't mutate shared
     // state (emptyValue's array-valued properties, e.g. { folders: [],

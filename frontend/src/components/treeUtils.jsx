@@ -112,12 +112,12 @@ export function ListSection({
         <div>
           {loading && (
             <div className="px-3 py-1.5 text-xs text-zinc-600" style={{ paddingLeft: `${(level + 1) * 14 + 8}px` }}>
-              Lädt…
+              Loading…
             </div>
           )}
           {!loading && entries.length === 0 && (
             <div className="px-3 py-1.5 text-xs text-zinc-600" style={{ paddingLeft: `${(level + 1) * 14 + 8}px` }}>
-              Keine Einträge
+              No entries
             </div>
           )}
           {!loading && entries.map((entry) => renderEntry(entry, level + 1))}
@@ -144,7 +144,7 @@ export function AttributesSection({ expanded, onToggle, attributeKeys, loading, 
         <div>
           {loading && (
             <div className="px-3 py-1.5 text-xs text-zinc-600" style={{ paddingLeft: `${(level + 1) * 14 + 8}px` }}>
-              Lädt…
+              Loading…
             </div>
           )}
           {!loading && attributeKeys.length === 0 && (

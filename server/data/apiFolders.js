@@ -50,15 +50,14 @@ async function getFolderById(id) {
   return all.find((f) => String(f.id) === String(id)) ?? null;
 }
 
-// Folder CRUD — VERIFIZIERT live gegen den mAirListDB Server (siehe
+// Folder CRUD — VERIFIED live against the mAirListDB server (see
 // docs/MAIRLISTDB-API.md):
 //   POST   /api/v1/folders?station=1        Body: { Name, Parent } -> { Parent, ID, Name }
-//   PUT    /api/v1/folders/<id>?station=1   Body: { Name, Parent } -> null (dient sowohl
-//          Umbenennen als auch Verschieben, je nachdem welches Feld sich ändert)
+//   PUT    /api/v1/folders/<id>?station=1   Body: { Name, Parent } -> null (serves both
+//          renaming and moving, depending on which field changes)
 //   DELETE /api/v1/folders/<id>?station=1   -> null
-// `Parent` ist bei Top-Level-Ordnern der String "root" (siehe rowToFolder),
-// intern wird das als parentId: null repräsentiert — beim Schreiben also
-// zurückkonvertieren.
+// `Parent` is the string "root" for top-level folders (see rowToFolder),
+// represented internally as parentId: null — so convert back when writing.
 function parentIdToApi(parentId) {
   return parentId == null ? "root" : String(parentId);
 }

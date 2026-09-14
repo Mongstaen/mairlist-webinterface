@@ -17,7 +17,7 @@ export async function loadBuffer(itemId) {
   if (bufferCache.has(itemId)) return bufferCache.get(itemId);
   const promise = (async () => {
     const res = await fetch(getAudioUrl(itemId));
-    if (!res.ok) throw new Error(`Audio konnte nicht geladen werden (${res.status})`);
+    if (!res.ok) throw new Error(`Audio could not be loaded (${res.status})`);
     const arrayBuffer = await res.arrayBuffer();
     return getContext().decodeAudioData(arrayBuffer);
   })();

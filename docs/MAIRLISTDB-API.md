@@ -2,61 +2,60 @@
 
 # mAirListDB Server – REST API (reverse-engineered)
 
-Diese Dokumentation basiert auf beobachtetem HTTP-Traffic des offiziellen
-mAirList-Clients (Version 6.3.24.4498) gegen den `mAirListDB Server` (Port 8840,
-`ServerMode=HTTP`, laut `dbserver.ini`). Sie ist **nicht offiziell** und
-unvollständig – es sind nur die Endpunkte dokumentiert, die im Traffic
-tatsächlich beobachtet wurden. Response-Formate sind anhand echter Antworten
-protokolliert. Die POST- und PUT-Bodies sind inzwischen über zwei
-Wireshark-Mitschnitte des echten Clients verifiziert und als solche
-markiert.
+This documentation is based on observed HTTP traffic of the official
+mAirList client (version 6.3.24.4498) against the `mAirListDB Server`
+(port 8840, `ServerMode=HTTP`, per `dbserver.ini`). It is **unofficial**
+and incomplete — only the endpoints actually observed in the traffic are
+documented. Response formats are logged from real responses. The POST and
+PUT bodies have since been verified via two Wireshark captures of the
+real client and marked as such.
 
-**Implementiert in:** [`server/data/apiRepository.js`](../server/data/apiRepository.js)
-(`DATA_SOURCE=api`) — die Repository-Funktionen setzen exakt die hier
-dokumentierten Endpunkte um. Funktionsumfang und aktueller Stand (was
-verfügbar ist, was bewusst als "noch nicht verfügbar" abgefangen wird):
-siehe [`docs/FEATURES.md` – API-basierte Datenquelle](FEATURES.md#-api-basierte-datenquelle-mairlistdb-server).
+**Implemented in:** [`server/data/apiRepository.js`](../server/data/apiRepository.js)
+(`DATA_SOURCE=api`) — the repository functions implement exactly the
+endpoints documented here. Feature scope and current status (what's
+available, what's deliberately caught as "not yet available"): see
+[`docs/FEATURES.md` – API-based data source](FEATURES.md#-api-based-data-source-mairlistdb-server).
 
-## Grundlagen
+## Basics
 
 - **Base URL:** `http://<server>:8840`
-- **Auth:** HTTP Basic Authentication, Zugangsdaten identisch mit den
-  mAirList-Benutzerkonten (`auth_users` in der jeweiligen Instanz-`auth.db`)
-- **Auth (Alternative):** Der offizielle Client nutzt stattdessen
-  `Authorization: Bearer <token>` mit dem Token aus seiner "Internet
-  Client"-Konfiguration. Unsere Anbindung bleibt bei Basic Auth, was
-  nachweislich für alle Endpunkte funktioniert.
-- ⚠️ **Sicherheitshinweis – unverschlüsseltes HTTP:** Der DBServer läuft
-  im dokumentierten Setup über Klartext-HTTP (Port 8840). Zugangsdaten
-  gehen damit bei *jeder* Anfrage im Klartext übers Netz — Basic Auth
-  (Base64 ist keine Verschlüsselung) genau wie ein Bearer-Token. Für
-  einen Betrieb außerhalb des lokalen Netzes ist TLS zwingend: der
-  DBServer unterstützt laut `dbserver.ini` `SSLPort=9840` mit
+- **Auth:** HTTP Basic Authentication, credentials identical to the
+  mAirList user accounts (`auth_users` in the respective instance's `auth.db`)
+- **Auth (alternative):** the official client instead uses
+  `Authorization: Bearer <token>` with the token from its "Internet
+  Client" configuration. Our integration stays with Basic Auth, which is
+  proven to work for all endpoints.
+- ⚠️ **Security note — unencrypted HTTP:** in the documented setup, the
+  DB server runs over plaintext HTTP (port 8840). Credentials therefore
+  travel over the network in plaintext on *every* request — Basic Auth
+  (Base64 is not encryption) just as much as a bearer token. For
+  operation outside the local network, TLS is mandatory: per
+  `dbserver.ini`, the DB server supports `SSLPort=9840` with
   `SSLCertificateFile`/`SSLKeyFile`.
-- **Format:** JSON, PascalCase-Feldnamen (spiegelt die Delphi/Pascal-Herkunft
-  von mAirList wider)
-- **Query-Parameter `station`:** scheint bei den meisten Endpunkten
-  erforderlich bzw. wird vom Client immer mitgeschickt (`station=1`)
-- **Pfad-Encoding:** Dateinamen in URLs sind URL-encoded (z. B. Leerzeichen
-  als `%20`, eckige Klammern als `%5B`/`%5D`)
-- **Concurrency-Limit nötig:** Der mAirListDB Server öffnet die `.mldb`
-  intern selbst über SQLite. Bei ~12 parallelen Requests von unserem
-  Client meldete der Server `database is locked` — dieselbe Fehlerklasse,
-  die `DATA_SOURCE=api` eigentlich vermeiden soll, nur serverseitig
-  ausgelöst statt clientseitig. `apiRepository.js` drosselt deshalb
-  ausgehende Requests auf `API_DB_MAX_CONCURRENT` (Default 3, siehe
-  `server/.env.production.example`) statt sie unbegrenzt parallel
-  abzufeuern.
+- **Format:** JSON, PascalCase field names (reflects mAirList's
+  Delphi/Pascal origins)
+- **Query parameter `station`:** appears to be required for most
+  endpoints, or is always sent by the client (`station=1`)
+- **Path encoding:** filenames in URLs are URL-encoded (e.g. spaces as
+  `%20`, square brackets as `%5B`/`%5D`)
+- **Concurrency limit needed:** the mAirListDB server itself opens the
+  `.mldb` internally via SQLite. At around 12 parallel requests from our
+  client, the server reported `database is locked` — the same class of
+  error that `DATA_SOURCE=api` is actually meant to avoid, just triggered
+  server-side instead of client-side. `apiRepository.js` therefore
+  throttles outgoing requests to `API_DB_MAX_CONCURRENT` (default 3, see
+  `server/.env.production.example`) instead of firing them off unlimited
+  in parallel.
 
-## Server-Metadaten
+## Server metadata
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/v1/capabilities` | Liste aktivierter Server-Features, z. B. `EditItems`, `CreateItems`, `EditPlaylist`, `EditFolders`, `EditStorages`, `EditStations`, `EditSubplaylists`, `FolderConfig`, `AssignFolders`, `MultiFolders`, `MiniScheduler`, `AdScheduler`, `PlaylistAttributes` |
-| GET | `/api/v1/permissions` | Berechtigungen des eingeloggten Users (siehe unten) |
-| GET | `/api/v1/config?station=1` | Server-/Stations-Konfiguration (siehe unten, VERIFIZIERT) |
-| GET | `/api/v1/config/<key>?station=1` | Einzelner Konfigurationswert |
-| GET | `/api/v1/stations/<id>/config/<key>?station=1` | Stations-spezifischer Konfigurationswert |
+| GET | `/api/v1/capabilities` | list of enabled server features, e.g. `EditItems`, `CreateItems`, `EditPlaylist`, `EditFolders`, `EditStorages`, `EditStations`, `EditSubplaylists`, `FolderConfig`, `AssignFolders`, `MultiFolders`, `MiniScheduler`, `AdScheduler`, `PlaylistAttributes` |
+| GET | `/api/v1/permissions` | permissions of the logged-in user (see below) |
+| GET | `/api/v1/config?station=1` | server/station configuration (see below, VERIFIED) |
+| GET | `/api/v1/config/<key>?station=1` | single configuration value |
+| GET | `/api/v1/stations/<id>/config/<key>?station=1` | station-specific configuration value |
 
 ### Response: `/api/v1/permissions`
 
@@ -73,7 +72,7 @@ siehe [`docs/FEATURES.md` – API-basierte Datenquelle](FEATURES.md#-api-basiert
 }
 ```
 
-### Response: `/api/v1/config?station=1` – VERIFIZIERT
+### Response: `/api/v1/config?station=1` – VERIFIED
 
 ```json
 {
@@ -110,15 +109,15 @@ siehe [`docs/FEATURES.md` – API-basierte Datenquelle](FEATURES.md#-api-basiert
 }
 ```
 
-**Anmerkungen:**
-- Flaches Key-Value-Objekt, ALLE Werte als String (auch numerisch
-  aussehende wie `"MaxPenalty": "2"` oder `"schemaversion": "24"`)
-- `dbid`: eindeutige GUID der Datenbank, identisch mit der
-  `DatabaseID`/Registry-Zeichenkette aus `dbserver.ini`
+**Notes:**
+- Flat key-value object, ALL values as strings (even ones that look
+  numeric, like `"MaxPenalty": "2"` or `"schemaversion": "24"`)
+- `dbid`: unique GUID of the database, identical to the
+  `DatabaseID`/registry string from `dbserver.ini`
   (`{C7861752-3801-44FD-939C-4B56DDDA661B}`)
-- **`StandardAttributes` – sehr wichtig für den Umbau:** enthält XML
-  (als String innerhalb des JSON) und definiert das **Schema** für die
-  `Attributes` jedes Items. Entschlüsselt:
+- **`StandardAttributes` – very important for the rebuild:** contains XML
+  (as a string inside the JSON) and defines the **schema** for the
+  `Attributes` of every item. Decoded:
   ```xml
   <StandardAttributes>
     <StandardAttribute Name="Jahr"/>
@@ -150,33 +149,35 @@ siehe [`docs/FEATURES.md` – API-basierte Datenquelle](FEATURES.md#-api-basiert
     </StandardAttribute>
   </StandardAttributes>
   ```
-  Das erklärt den bei Item 2605 beobachteten Wert `"Stimmung": "High"` –
-  `Stimmung` ist ein Dropdown-Attribut mit genau den drei Werten
-  Low/Medium/High. Für ein Attribute-Editor-UI im Webinterface muss
-  dieses XML geparst werden, um zu wissen welche Attribute-Felder
-  existieren und welcher Typ/welche Dropdown-Werte pro Feld gültig sind
-  (freier Text vs. `Kind="DropDown"` vs. `Kind="Check"`)
-- `PlaylistAttributes` ist ebenfalls XML, hier aber leer
-  (`<StandardAttributes/>`) – vermutlich das gleiche Konzept für
-  playlist-spezifische Attribute, aktuell ungenutzt in diesem Bestand
-- Weitere Felder betreffen Scheduler-Regeln (`ArtistSeparation`,
-  `TitleSeparation`, `TrackSeparation` + jeweilige `*Penalty`-Werte),
-  Import-Verhalten (`Import*`-Felder) und allgemeine Server-Konfiguration
+  (Note: attribute names such as `Jahr`, `Komponist`, `Sprache`, `Ja`/`Nein` above are the literal German strings stored in the real config data — kept as-is since they are data, not UI text.)
+  This explains the value `"Stimmung": "High"` observed on item 2605 –
+  `Stimmung` is a dropdown attribute with exactly the three values
+  Low/Medium/High. For an attribute-editor UI in the webinterface, this
+  XML must be parsed to know which attribute fields exist and which
+  type/dropdown values are valid per field (free text vs. `Kind="DropDown"`
+  vs. `Kind="Check"`)
+- `PlaylistAttributes` is also XML, but empty here
+  (`<StandardAttributes/>`) – presumably the same concept for
+  playlist-specific attributes, currently unused in this inventory
+- Other fields concern scheduler rules (`ArtistSeparation`,
+  `TitleSeparation`, `TrackSeparation` plus their respective `*Penalty`
+  values), import behavior (`Import*` fields), and general server
+  configuration
 
-## Folders (Ordnerbaum)
+## Folders (folder tree)
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/v1/folders?station=1` | **VERIFIZIERT:** liefert den KOMPLETTEN Ordnerbaum auf einmal, nicht nur die Root-Ebene (getestet: 155 Ordner in einer einzigen Antwort) |
-| GET | `/api/v1/folders?parent=<id>&station=1` | Unterordner eines bestimmten Ordners (gefiltert) |
-| GET | `/api/v1/folders/<id>/config?station=1` | Ordner-spezifische Konfiguration |
-| POST | `/api/v1/folders?station=1` | **VERIFIZIERT:** Ordner anlegen |
-| PUT | `/api/v1/folders/<id>?station=1` | **VERIFIZIERT:** Ordner umbenennen und/oder verschieben |
-| DELETE | `/api/v1/folders/<id>?station=1` | **VERIFIZIERT:** Ordner löschen |
+| GET | `/api/v1/folders?station=1` | **VERIFIED:** returns the ENTIRE folder tree at once, not just the root level (tested: 155 folders in a single response) |
+| GET | `/api/v1/folders?parent=<id>&station=1` | subfolders of a specific folder (filtered) |
+| GET | `/api/v1/folders/<id>/config?station=1` | folder-specific configuration |
+| POST | `/api/v1/folders?station=1` | **VERIFIED:** create a folder |
+| PUT | `/api/v1/folders/<id>?station=1` | **VERIFIED:** rename and/or move a folder |
+| DELETE | `/api/v1/folders/<id>?station=1` | **VERIFIED:** delete a folder |
 
-### Response: `/api/v1/folders?station=1` – VERIFIZIERT
+### Response: `/api/v1/folders?station=1` – VERIFIED
 
-Response ist in ein Wrapper-Objekt eingebettet, nicht direkt ein Array:
+The response is wrapped in an object, not a direct array:
 
 ```json
 {
@@ -198,88 +199,87 @@ Response ist in ein Wrapper-Objekt eingebettet, nicht direkt ein Array:
 }
 ```
 
-**Anmerkungen:**
-- `value` enthält den kompletten Baum als flache Liste (alle Ebenen
-  gemischt), Hierarchie ergibt sich aus `Parent` → `ID`-Verkettung
-- Top-Level-Ordner haben `Parent: "root"` (String, kein null)
-- `Count` ist die Gesamtzahl aller Ordner in der Antwort – bei 155
-  Ordnern kam alles in einer einzigen Response, **kein Hinweis auf
-  Pagination** wurde beobachtet (keine `nextPage`/`offset`-Felder o. ä.)
-- Alle Felder als String, auch `ID`/`Parent`/`SubfolderCount` obwohl
-  numerisch aussehend – konsistent mit `DatabaseID` bei Items
-- Für den Ordnerbaum im Frontend reicht vermutlich EIN Request beim
-  Start (kompletter Baum), Lazy-Loading via `parent=<id>` ist optional
-  möglich aber angesichts der überschaubaren Größe (155 Ordner bei
-  diesem Bestand) nicht zwingend nötig
+**Notes:**
+- `value` contains the entire tree as a flat list (all levels mixed
+  together), hierarchy results from `Parent` → `ID` chaining
+- Top-level folders have `Parent: "root"` (a string, not null)
+- `Count` is the total number of folders in the response — for 155
+  folders, everything arrived in a single response, **no indication of
+  pagination** was observed (no `nextPage`/`offset` fields or similar)
+- All fields as strings, even `ID`/`Parent`/`SubfolderCount` although
+  they look numeric — consistent with `DatabaseID` on items
+- For the folder tree in the frontend, ONE request at startup (full
+  tree) is presumably sufficient; lazy-loading via `parent=<id>` is
+  optionally possible but, given the manageable size (155 folders in
+  this inventory), not strictly necessary
 
-### POST `/api/v1/folders?station=1` – VERIFIZIERT
+### POST `/api/v1/folders?station=1` – VERIFIED
 
-Legt einen neuen Ordner an.
+Creates a new folder.
 
-**Request-Body:**
+**Request body:**
 ```json
 { "Name": "Mein Ordner", "Parent": "5" }
 ```
 
-**Response bei Erfolg (Status 200):** das neu erzeugte Objekt inkl. `ID`:
+**Response on success (status 200):** the newly created object incl. `ID`:
 ```json
 { "Parent": "5", "ID": "312", "Name": "Mein Ordner" }
 ```
 
-- Top-Level-Ordner: `Parent: "root"` (String, wie bei GET `/folders`)
-- `ID` wird vom Server vergeben und kommt nur über diese Response zurück
+- Top-level folder: `Parent: "root"` (string, as with GET `/folders`)
+- `ID` is assigned by the server and only comes back via this response
 
-### PUT `/api/v1/folders/<id>?station=1` – VERIFIZIERT
+### PUT `/api/v1/folders/<id>?station=1` – VERIFIED
 
-Dient sowohl zum Umbenennen (nur `Name` ändert sich) als auch zum
-Verschieben (nur `Parent` ändert sich) — ein Endpunkt für beides, es wird
-immer der komplette Body mit beiden Feldern gesendet.
+Serves both renaming (only `Name` changes) and moving (only `Parent`
+changes) — a single endpoint for both, the complete body with both
+fields is always sent.
 
-**Request-Body:**
+**Request body:**
 ```json
 { "Name": "Neuer Name", "Parent": "5" }
 ```
 
 - **Content-Type:** `application/json`
-- **Response bei Erfolg:** `null` (leerer Body, Status 200) — wie bei
-  `PUT /api/v1/items/<id>`, kein Echo des aktualisierten Objekts
-- Top-Level-Ziel: `Parent: "root"`
+- **Response on success:** `null` (empty body, status 200) — as with
+  `PUT /api/v1/items/<id>`, no echo of the updated object
+- Top-level target: `Parent: "root"`
 
-### DELETE `/api/v1/folders/<id>?station=1` – VERIFIZIERT
+### DELETE `/api/v1/folders/<id>?station=1` – VERIFIED
 
-- **Response bei Erfolg:** `null` (leerer Body, Status 200)
-- Verhalten bei nicht-leeren Ordnern (Unterordner/Items vorhanden) nicht
-  verifiziert — im Zweifel vor dem Löschen prüfen
+- **Response on success:** `null` (empty body, status 200)
+- Behavior for non-empty folders (subfolders/items present) not
+  verified — when in doubt, check before deleting
 
 ## Items (Library)
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/v1/items?folder=<id>&station=1` | Items in einem Ordner |
-| GET | `/api/v1/items?search=<begriff>&fields=All&limit=50&station=1` | **VERIFIZIERT:** Volltextsuche über die Bibliothek (siehe unten) |
-| GET | `/api/v1/items/<id>?station=1` | Einzelnes Item, vollständig |
-| GET | `/api/v1/items?ids=<id>[,<id>...]&icons=true&station=1` | Mehrere Items gezielt per ID; `icons=true` liefert `IconData` (das Cover) mit |
-| GET | `/api/v1/items?artists&time=...&station=1` | Distinct-Liste der Artists (Such-/Filter-Funktion) |
-| GET | `/api/v1/items?titles&time=...&station=1` | Distinct-Liste der Titel |
-| GET | `/api/v1/items?folder=<id>&time=...&station=1` | Items mit Sendezeit-Kontext (z. B. für Scheduling-Anzeige) |
-| GET | `/api/v1/items?folder=<id>&id=<id>&station=1` | Gezielte Abfrage eines Items innerhalb eines Ordnerkontexts (beobachtet direkt nach einem PUT, vermutlich zur Bestätigung/Refresh) |
-| GET | `/api/v1/items/<id>/folders?station=1` | Ordner-Zuordnungen eines Items |
-| GET | `/api/v1/items/<id>/restrictions?station=1` | Restriktionen (Campaigns/Sperren) eines Items |
-| GET | `/api/v1/items/<id>/history?station=1` | Abspielhistorie eines Items |
-| PUT | `/api/v1/items/<id>` | **VERIFIZIERT:** Item aktualisieren (siehe unten) |
-| PUT | `/api/v1/items/<id>/restrictions` | **VERIFIZIERT:** Restriktionen schreiben (siehe unten) |
-| POST | `/api/v1/items?station=1` | **VERIFIZIERT:** neues Item anlegen |
-| DELETE | `/api/v1/items/<id>?station=1` | **VERIFIZIERT:** Item löschen |
+| GET | `/api/v1/items?folder=<id>&station=1` | items in a folder |
+| GET | `/api/v1/items?search=<term>&fields=All&limit=50&station=1` | **VERIFIED:** full-text search across the library (see below) |
+| GET | `/api/v1/items/<id>?station=1` | a single item, complete |
+| GET | `/api/v1/items?ids=<id>[,<id>...]&icons=true&station=1` | multiple items by ID; `icons=true` includes `IconData` (the cover) |
+| GET | `/api/v1/items?artists&time=...&station=1` | distinct list of artists (search/filter function) |
+| GET | `/api/v1/items?titles&time=...&station=1` | distinct list of titles |
+| GET | `/api/v1/items?folder=<id>&time=...&station=1` | items with airtime context (e.g. for scheduling display) |
+| GET | `/api/v1/items?folder=<id>&id=<id>&station=1` | targeted query of an item within a folder context (observed directly after a PUT, presumably for confirmation/refresh) |
+| GET | `/api/v1/items/<id>/folders?station=1` | folder assignments of an item |
+| GET | `/api/v1/items/<id>/restrictions?station=1` | restrictions (campaigns/blocks) of an item |
+| GET | `/api/v1/items/<id>/history?station=1` | play history of an item |
+| PUT | `/api/v1/items/<id>` | **VERIFIED:** update an item (see below) |
+| PUT | `/api/v1/items/<id>/restrictions` | **VERIFIED:** write restrictions (see below) |
+| POST | `/api/v1/items?station=1` | **VERIFIED:** create a new item |
+| DELETE | `/api/v1/items/<id>?station=1` | **VERIFIED:** delete an item |
 
-### Item-Typen (`Type`-Feld) – VERIFIZIERT (24 von 27)
+### Item types (`Type` field) – VERIFIED (24 of 27)
 
-Es gibt keinen `/api/v1/itemtypes`-Endpunkt (siehe "Offene Punkte"
-unten). Die folgende Zuordnung Client-Anzeige ↔ DB-Wert wurde per
-Live-Abfrage gegen die echte Datenbank ermittelt (Testitems je Typ im
-mAirList-Client angelegt, per `GET /api/v1/items/<id>` den `Type`-Wert
-ausgelesen):
+There is no `/api/v1/itemtypes` endpoint (see "Open items" below). The
+following client-display ↔ DB-value mapping was determined via live
+queries against the real database (test items created per type in the
+mAirList client, `Type` value read out via `GET /api/v1/items/<id>`):
 
-| Deutsch (Client-Anzeige) | DB-Wert (`Type`) |
+| German (client display) | DB value (`Type`) |
 |---|---|
 | Musik | `Music` |
 | Moderation | `Voice` |
@@ -307,41 +307,43 @@ ausgelesen):
 | Andere | `Other` |
 | Platzhalter | `Dummy` |
 
-**Nicht verifiziert** (im aktuellen Bestand nicht vorhanden): Container
-(siehe eigenen Abschnitt unten, hat ein eigenes Konzept), Cartwall-Seite,
-Benutzerdefiniert 1-3.
+(The left column shows the labels as they appear in the German mAirList
+client UI — kept untranslated since these are literal client-UI strings
+being cross-referenced, not our own UI text.)
 
-#### Container: eigenes Konzept, nicht über `Type` erkennbar
+**Not verified** (not present in the current inventory): container (see
+its own section below, has its own concept), cartwall page, custom 1-3.
 
-Container sind Elemente, die weitere Elemente enthalten (z. B.
-Werbeblöcke). Sie tragen zusätzlich zum `Type`-Feld ein `Class`-Feld,
-das die eigentliche Container-Art verrät. Verifiziert per Live-Abfrage
-gegen sechs echte Test-Items:
+#### Container: its own concept, not recognizable via `Type`
 
-| Titel | `Type` | `Class` |
+Containers are elements that contain further elements (e.g. ad blocks).
+In addition to the `Type` field they carry a `Class` field that reveals
+the actual container kind. Verified via live query against six real test
+items:
+
+| Title | `Type` | `Class` |
 |---|---|---|
-| Nachrichten-Container | `News` | `NewsContainer` |
-| Hook-Container | `Container` | `HookContainer` |
-| Automatischer Hook-Container | `Container` | `AutoHookContainer` |
-| Auto-Hook-Container-Marker | `Dummy` | `AutoHookContainerMarker` |
-| Regionen-Container (Regionalisierung) | `Container` | `RegionContainer` |
-| Einfacher Container | `Container` | `Container` |
+| News container | `News` | `NewsContainer` |
+| Hook container | `Container` | `HookContainer` |
+| Automatic hook container | `Container` | `AutoHookContainer` |
+| Auto-hook-container marker | `Dummy` | `AutoHookContainerMarker` |
+| Region container (regionalization) | `Container` | `RegionContainer` |
+| Simple container | `Container` | `Container` |
 
-> ⚠️ **Falle für jede typbasierte Anzeige-/Logik-Prüfung:** Der
-> Nachrichten-Container hat `Type: "News"`, **NICHT** `Type: "Container"`.
-> Auf Type-Ebene sieht er aus wie eine normale Nachrichtenmeldung, ist
-> aber technisch ein Container mit Inhalt (ebenso hat der
-> Auto-Hook-Container-Marker `Type: "Dummy"`, nicht `"Container"`). Jede
-> Logik, die prüfen will "ist das ein Container", **muss zusätzlich das
-> `Class`-Feld** auf einen der obigen `*Container`/`*ContainerMarker`-Werte
-> prüfen — sich nur auf `Type: "Container"` zu verlassen übersieht
-> mindestens diese beiden Fälle.
+> ⚠️ **Trap for any type-based display/logic check:** the news container
+> has `Type: "News"`, **NOT** `Type: "Container"`. At the type level it
+> looks like a normal news item, but is technically a container with
+> content (likewise, the auto-hook-container marker has `Type: "Dummy"`,
+> not `"Container"`). Any logic that wants to check "is this a
+> container" **must additionally check the `Class` field** against one
+> of the `*Container`/`*ContainerMarker` values above — relying solely
+> on `Type: "Container"` misses at least these two cases.
 
-Container-Items haben (bei leerem Inhalt) ein leeres `Items`-Array. In
-eine Playlist eingebettet enthält dieses Array die tatsächlichen
-Sub-Elemente (siehe "Response: gefüllte Stunde" weiter unten).
-`InnerFadeDuration` und `Options` (Wert `["NoLogging"]` beobachtet) sind
-container-spezifische Zusatzfelder, bisher nicht weiter ausgewertet.
+Container items have (when empty) an empty `Items` array. Embedded in a
+playlist, this array contains the actual sub-elements (see "Response:
+populated hour" further below). `InnerFadeDuration` and `Options`
+(value `["NoLogging"]` observed) are container-specific extra fields,
+not further evaluated so far.
 
 ### Response: `/api/v1/items/<id>?station=1`
 
@@ -371,10 +373,10 @@ container-spezifische Zusatzfelder, bisher nicht weiter ausgewertet.
 }
 ```
 
-### Response: `/api/v1/items?folder=<id>&station=1` – VERIFIZIERT (erweitert)
+### Response: `/api/v1/items?folder=<id>&station=1` – VERIFIED (extended)
 
-Anders als `/api/v1/folders` liefert dieser Endpunkt ein **rohes Array**,
-kein `{value, Count}`-Wrapper:
+Unlike `/api/v1/folders`, this endpoint returns a **raw array**, not a
+`{value, Count}` wrapper:
 
 ```json
 [
@@ -413,150 +415,145 @@ kein `{value, Count}`-Wrapper:
 ]
 ```
 
-**Neu gegenüber der Einzel-Item-Response (`/items/<id>`):**
-- `Folders`: Array aller Ordner-Zuordnungen dieses Items (ID + Name),
-  ein Item kann in mehreren Ordnern gleichzeitig gelistet sein
-  (hier gleichzeitig in "IDs" und "Sweeper")
-- `NextUse` / `LastUse`: geplante bzw. letzte Verwendung laut Scheduler
-  (ISO-Timestamp oder leerer String wenn nicht geplant)
-- `LastPlayed`: Zeitpunkt der letzten tatsächlichen Wiedergabe
-  (ISO-Timestamp)
-- `EffectiveDuration`: abweichend von `Duration` – vermutlich die
-  tatsächliche Hörzeit unter Berücksichtigung von `StartNext`
-  (`EffectiveDuration` liegt bei allen beobachteten Items nahe am
-  `StartNext`-Wert, z. B. `StartNext: 1.2` → `EffectiveDuration: 1.2`).
-  Das deutet darauf hin, dass `EffectiveDuration` die Zeit bis zum
-  Übergangspunkt ist, nicht die volle Dateidauer
+**New compared to the single-item response (`/items/<id>`):**
+- `Folders`: array of all folder assignments of this item (ID + name),
+  an item can be listed in multiple folders at once (here in both "IDs"
+  and "Sweeper" at the same time)
+- `NextUse` / `LastUse`: planned or last use per scheduler (ISO
+  timestamp or empty string if not scheduled)
+- `LastPlayed`: timestamp of the last actual playback (ISO timestamp)
+- `EffectiveDuration`: differs from `Duration` – presumably the actual
+  listening time accounting for `StartNext` (`EffectiveDuration` is
+  close to the `StartNext` value on all observed items, e.g.
+  `StartNext: 1.2` → `EffectiveDuration: 1.2`). This suggests
+  `EffectiveDuration` is the time until the transition point, not the
+  full file duration
 
-Die Einzel-Item-Response (`GET /api/v1/items/<id>`) enthält diese
-zusätzlichen Felder NICHT (siehe Beispiel oben) – sie liefert einen
-schlankeren Datensatz ohne `Folders`/`NextUse`/`LastUse`/`LastPlayed`/
+The single-item response (`GET /api/v1/items/<id>`) does NOT contain
+these additional fields (see example above) – it returns a leaner
+record without `Folders`/`NextUse`/`LastUse`/`LastPlayed`/
 `EffectiveDuration`.
 
-**Allgemeine Anmerkungen (für beide Response-Varianten):**
-- `Markers` enthält nur tatsächlich gesetzte Cue-Punkte, nicht alle
-  denkbaren Typen. **Bislang bei ~20 stichprobenartig geprüften Items
-  (Musik + Sweeper) nur folgende vier Marker-Typen beobachtet:**
-  `CueIn`, `CueOut`, `FadeOut`, `StartNext`. Weder `FadeIn`, `FadeEnd`,
-  `Hook`/`HookIn`/`HookOut` noch `Ramp1`/`2`/`3` wurden bisher gesehen –
-  möglicherweise nutzt dieser Bestand diese Marker-Typen schlicht nicht,
-  oder sie werden anders benannt. Bei Bedarf gezielt ein Item mit
-  bekannten Hook-/Ramp-Punkten (z. B. im Cue Editor sichtbar) über die
-  API abfragen um das zu klären.
-- `Amplification` = Normalisierungs-Gain in dB (entspricht `gainDb` im
-  aktuellen Datenmodell)
-- `Levels.Loudness` = LUFS-Wert
-- `Class` unterscheidet u. a. `"File"` und `"Container"` (siehe Playlists
-  unten für ein Container-Beispiel)
-- `Attributes` ist nicht auf ein festes Schema beschränkt – beobachtet
-  wurden sowohl fachliche Attribute (`"Stimmung": "High"`) als auch
-  technische Metadaten (`"Konto"`, `"Datum"` – vermutlich automatisch
-  von der Aufnahme-/Schnittsoftware gesetzt, hier "Adobe Audition 13.0")
+**General notes (for both response variants):**
+- `Markers` only contains actually set cue points, not every conceivable
+  type. **So far, across ~20 spot-checked items (music + sweepers), only
+  the following four marker types have been observed:** `CueIn`,
+  `CueOut`, `FadeOut`, `StartNext`. Neither `FadeIn`, `FadeEnd`,
+  `Hook`/`HookIn`/`HookOut` nor `Ramp1`/`2`/`3` have been seen so far –
+  possibly this inventory simply doesn't use these marker types, or they
+  are named differently. If needed, query the API for an item with known
+  hook/ramp points (e.g. visible in the cue editor) to clarify this.
+- `Amplification` = normalization gain in dB (corresponds to `gainDb` in
+  the current data model)
+- `Levels.Loudness` = LUFS value
+- `Class` distinguishes among others `"File"` and `"Container"` (see
+  playlists below for a container example)
+- `Attributes` is not restricted to a fixed schema – both domain
+  attributes (`"Stimmung": "High"`) and technical metadata (`"Konto"`,
+  `"Datum"` – presumably set automatically by the recording/editing
+  software, here "Adobe Audition 13.0") have been observed
 
-### GET `/api/v1/items?search=<begriff>&fields=All&limit=50&station=1` – VERIFIZIERT
+### GET `/api/v1/items?search=<term>&fields=All&limit=50&station=1` – VERIFIED
 
-Volltextsuche über die Bibliothek, per Wireshark-Mitschnitt des echten
-Clients (6.3.24.4498) beobachtet. Damit gibt es doch einen Endpunkt für
-eine ordnerübergreifende Item-Abfrage — bis dahin die Annahme, dass
-`GET /api/v1/items` immer `folder=` oder `ids=` verlangt.
+Full-text search across the library, observed via a Wireshark capture of
+the real client (6.3.24.4498). This means there IS an endpoint for a
+cross-folder item query after all — until now the assumption was that
+`GET /api/v1/items` always requires `folder=` or `ids=`.
 
-| Parameter | Beobachteter Wert | Bedeutung |
+| Parameter | Observed value | Meaning |
 |---|---|---|
-| `search` | Suchbegriff, Leerzeichen als `+` kodiert | der eigentliche Suchtext |
-| `fields` | `All` | einzuschließende Felder; weitere gültige Werte unbekannt (vermutlich Feldnamen wie `Artist`/`Title`) |
-| `limit` | `50` | maximale Trefferzahl; der Client fragt immer 50 an |
-| `station` | `1` | wie überall |
+| `search` | search term, spaces encoded as `+` | the actual search text |
+| `fields` | `All` | fields to include; other valid values unknown (presumably field names like `Artist`/`Title`) |
+| `limit` | `50` | maximum number of hits; the client always requests 50 |
+| `station` | `1` | as everywhere |
 
-- **Response:** Array von Item-Objekten im **gleichen erweiterten Format
-  wie `/api/v1/items?folder=<id>`** — inklusive `Folders`, `NextUse`,
+- **Response:** array of item objects in the **same extended format as
+  `/api/v1/items?folder=<id>`** — including `Folders`, `NextUse`,
   `LastUse`, `LastPlayed`, `EffectiveDuration`.
-- **Noch offen:** ob `offset`/`page` für Pagination existieren, welche
-  Werte `fields` sonst akzeptiert, und ob die Suche Wortanfang oder
-  Teilstring matcht.
+- **Still open:** whether `offset`/`page` exist for pagination, what
+  other values `fields` accepts, and whether the search matches
+  word-start or substring.
 
-Damit ist `searchItems()` in `apiRepository.js` umsetzbar — bisher ein
-bewusst leerer Stub, weil kein Such-Endpunkt bekannt war.
+This means `searchItems()` in `apiRepository.js` can be implemented —
+previously a deliberately empty stub, since no search endpoint was known.
 
-### PUT `/api/v1/items/<id>` – VERIFIZIERT
+### PUT `/api/v1/items/<id>` – VERIFIED
 
-Der Body ist **exakt symmetrisch zum GET-Format**: das komplette
-Item-Objekt (wie von GET zurückgegeben) wird mit geänderten Werten per
-PUT zurückgeschickt. Verifiziert per PowerShell (`Invoke-RestMethod`):
-Item gelesen, `Markers.FadeOut` geändert, unverändertes JSON per PUT
-gesendet, anschließend per GET bestätigt dass der neue Wert
-tatsächlich persistiert wurde.
+The body is **exactly symmetrical to the GET format**: the complete item
+object (as returned by GET) is sent back via PUT with the changed
+values. Verified via PowerShell (`Invoke-RestMethod`): item read,
+`Markers.FadeOut` changed, unchanged JSON sent via PUT, then confirmed
+via GET that the new value was actually persisted.
 
-- **Content-Type:** `application/json` (funktioniert nachweislich). Der
-  **offizielle Client nutzt hier allerdings ebenfalls
-  `application/x-www-form-urlencoded` mit `$doc`** (Wireshark-Mitschnitt,
-  siehe "POST-Endpunkte (form-urlencoded)"). Der Server akzeptiert also
-  beides; `apiRepository.js`s `updateItem()` bleibt bei JSON.
-- **Response bei Erfolg:** `null` (leerer Body, Status 200)
-- Es reicht, das komplette vom GET erhaltene Objekt zu nehmen, einzelne
-  Felder zu ändern und unverändert zurückzuschicken – keine Teil-Updates
-  nötig, kein separates "Diff"-Format
+- **Content-Type:** `application/json` (proven to work). The **official
+  client, however, also uses `application/x-www-form-urlencoded` with
+  `$doc` here** (Wireshark capture, see "POST endpoints
+  (form-urlencoded)"). So the server accepts both; `apiRepository.js`'s
+  `updateItem()` stays with JSON.
+- **Response on success:** `null` (empty body, status 200)
+- It's enough to take the complete object received from GET, change
+  individual fields, and send it back unchanged – no partial updates
+  needed, no separate "diff" format
 
-**Body-Variante des offiziellen Clients (Wireshark, form-urlencoded):**
+**Body variant of the official client (Wireshark, form-urlencoded):**
 
 ```
-station=1&$doc={...vollständiges Item-JSON...}
+station=1&$doc={...complete item JSON...}
 ```
 
-Beide Wege funktionieren nachweislich: `application/json` (unsere
-Variante, seit Wochen im Einsatz) und `application/x-www-form-urlencoded`
-mit `$doc` (die Client-Variante). Kein Handlungsbedarf in
-`apiRepository.js`.
+Both ways are proven to work: `application/json` (our variant, in use
+for weeks) and `application/x-www-form-urlencoded` with `$doc` (the
+client variant). No action needed in `apiRepository.js`.
 
-#### Schreibbare Felder im PUT-Body – VERIFIZIERT
+#### Writable fields in the PUT body – VERIFIED
 
-Der mitgeschnittene Client-Body enthält deutlich mehr Felder als das
-minimale GET-Beispiel oben. Alle davon gehen beim normalen Item-PUT mit,
-es braucht dafür **keine eigenen Endpunkte**:
+The captured client body contains significantly more fields than the
+minimal GET example above. All of these are accepted via the normal item
+PUT, **no dedicated endpoints** are needed for them:
 
-| Feld | Beispiel / Format | Bedeutung |
+| Field | Example / format | Meaning |
 |---|---|---|
-| `Attributes` | `{"Stimmung":"high"}` | Item-Attribute — kein separater Attribut-Endpunkt nötig |
-| `IconData` | base64-kodiertes JPEG | **Das Cover.** Lesbar auch über `?icons=true` (siehe unten) |
-| `CueData` | `{"Items":[{"Artist":"…","ItemType":"Music","Title":"…","Class":"Track"}]}` | verschachtelte Track-Infos: was im Element enthalten ist (z. B. bei Mitschnitten/Containern) |
-| `Type` | `"Voice"` beobachtet | Item-Typ; `Voice` = Voice Track (siehe "Voice Tracking" unten) |
-| `Database` | `"mAirListDB:{GUID}"` | Datenbankkennung |
+| `Attributes` | `{"Stimmung":"high"}` | item attributes — no separate attribute endpoint needed |
+| `IconData` | base64-encoded JPEG | **The cover.** Also readable via `?icons=true` (see below) |
+| `CueData` | `{"Items":[{"Artist":"…","ItemType":"Music","Title":"…","Class":"Track"}]}` | nested track info: what's contained in the element (e.g. for recordings/containers) |
+| `Type` | `"Voice"` observed | item type; `Voice` = voice track (see "Voice Tracking" below) |
+| `Database` | `"mAirListDB:{GUID}"` | database identifier |
 
-`IconData` löst den offenen Punkt "Cover ist im api-Modus nicht
-verfügbar": Cover sind sowohl **lesbar** (`?icons=true` bzw. im
-`?folder=`-Format) als auch **schreibbar** (dieses Feld im PUT-Body).
+`IconData` resolves the open item "cover is not available in api mode":
+covers are both **readable** (`?icons=true` or in the `?folder=` format)
+and **writable** (this field in the PUT body).
 
-### PUT `/api/v1/items/<id>/restrictions` – VERIFIZIERT
+### PUT `/api/v1/items/<id>/restrictions` – VERIFIED
 
-Schreibt die Sendebeschränkungen eines Items (Gegenstück zum bereits
-dokumentierten `GET /api/v1/items/<id>/restrictions`).
+Writes an item's airtime restrictions (the counterpart to the already
+documented `GET /api/v1/items/<id>/restrictions`).
 
 - **Content-Type:** `application/x-www-form-urlencoded`
-- **Body (dekodiert):**
+- **Body (decoded):**
   ```
   station=1&$doc={"NotBefore":null,"NotAfter":null,"Hours":"1111...0111"}
   ```
 
-| Feld | Format | Bedeutung |
+| Field | Format | Meaning |
 |---|---|---|
-| `NotBefore` | ISO-Datum oder `null` | frühestes Sendedatum; `null` = keine Untergrenze |
-| `NotAfter` | ISO-Datum oder `null` | spätestes Sendedatum; `null` = keine Obergrenze |
-| `Hours` | Bit-String mit **exakt 168 Zeichen** | Stundenraster, 7 Tage × 24 Stunden |
+| `NotBefore` | ISO date or `null` | earliest airdate; `null` = no lower bound |
+| `NotAfter` | ISO date or `null` | latest airdate; `null` = no upper bound |
+| `Hours` | bit string with **exactly 168 characters** | hourly grid, 7 days × 24 hours |
 
-**Das `Hours`-Bitraster:** `"1"` = Sendung in dieser Stunde erlaubt,
-`"0"` = gesperrt. 168 = 7 × 24 passt eindeutig auf ein Wochenraster.
+**The `Hours` bit grid:** `"1"` = airing allowed in this hour, `"0"` =
+blocked. 168 = 7 × 24, clearly fits a weekly grid.
 
-⚠️ **Reihenfolge nicht zweifelsfrei belegt:** vermutlich Montag 0 Uhr bis
-Sonntag 23 Uhr (also Tag-für-Tag, innerhalb eines Tages stundenweise).
-Beim Implementieren gegen die Client-Anzeige gegenprüfen — ein einzelnes
-gesetztes Bit an bekannter Position schreiben und im offiziellen Client
-nachsehen, welche Zelle markiert ist. Ein Off-by-one im Wochentag oder
-eine spalten- statt zeilenweise Anordnung wären aus dem Mitschnitt allein
-nicht unterscheidbar.
+⚠️ **Order not conclusively established:** presumably Monday 00:00
+through Sunday 23:00 (i.e. day by day, hour by hour within a day). Cross
+check against the client display when implementing — write a single set
+bit at a known position and check in the official client which cell is
+marked. An off-by-one in the weekday or a column-wise instead of
+row-wise arrangement could not be distinguished from the capture alone.
 
-### POST `/api/v1/items?station=1` – VERIFIZIERT
+### POST `/api/v1/items?station=1` – VERIFIED
 
-Live gegen den Server getestet (schrittweises Ermitteln der Pflichtfelder
-durch gezieltes Weglassen):
+Tested live against the server (mandatory fields determined step by step
+by deliberately omitting them):
 
 ```json
 {
@@ -567,94 +564,93 @@ durch gezieltes Weglassen):
 }
 ```
 
-- **Pflichtfelder:** `Class` (ohne → Fehler `"Invalid playlist item
-  class"`) und `Filename` (ohne → Fehler `"Invalid location type"`).
-  `Title` und `Type` wurden ohne Weiteres akzeptiert.
-- Weitere Felder aus dem PUT-Format (`Markers`, `Attributes`,
-  `Amplification` etc.) sind vermutlich optional mitgebbar, analog zu
-  PUT — nicht einzeln durchgetestet.
-- **Response bei Erfolg:** ein **nackter JSON-String** mit der neuen
-  Item-ID, z. B. `"2634"` — **kein** Objekt wie bei GET/PUT.
-- Um das vollständige Item zurückzugeben, muss im Anschluss ein
-  `GET /api/v1/items/<neue-id>` erfolgen (macht `apiRepository.js`s
-  `createItem()` bereits, analog zu `updateItem()`).
+- **Mandatory fields:** `Class` (without it → error `"Invalid playlist
+  item class"`) and `Filename` (without it → error `"Invalid location
+  type"`). `Title` and `Type` were accepted without issue.
+- Other fields from the PUT format (`Markers`, `Attributes`,
+  `Amplification` etc.) can presumably also be supplied optionally,
+  analogous to PUT — not individually tested.
+- **Response on success:** a **bare JSON string** with the new item ID,
+  e.g. `"2634"` — **not** an object like GET/PUT.
+- To return the complete item, a subsequent `GET
+  /api/v1/items/<new-id>` is needed (`apiRepository.js`'s `createItem()`
+  already does this, analogous to `updateItem()`).
 
-**Ordner-Zuordnung – VERIFIZIERT:** Der im Client-Traffic zusätzlich
-beobachtete Aufruf `POST /api/v1/folders/<folderId>/items` (direkt nach
-dem `POST /items`) ordnet das neue Item einem Ordner zu. Das Body-Format
-ist inzwischen per Wireshark-Mitschnitt entschlüsselt: form-urlencoded
-mit `add`-Flag und `$doc`-Array, siehe "POST-Endpunkte
-(form-urlencoded)" unten. `apiRepository.js` setzt das in
-`assignItemsToFolder(folderId, itemIds)` um; `createItem()` ruft das nach
-dem `POST /items` auf, wenn eine `folderId` mitgegeben wurde. Schlägt nur
-die Zuordnung fehl, wird das (bereits angelegte) Item trotzdem
-zurückgegeben und der Fehler geloggt.
+**Folder assignment – VERIFIED:** The additionally observed call `POST
+/api/v1/folders/<folderId>/items` in the client traffic (right after
+`POST /items`) assigns the new item to a folder. The body format has
+since been decoded via a Wireshark capture: form-urlencoded with an
+`add` flag and a `$doc` array, see "POST endpoints (form-urlencoded)"
+below. `apiRepository.js` implements this as
+`assignItemsToFolder(folderId, itemIds)`; `createItem()` calls it after
+`POST /items` if a `folderId` was supplied. If only the assignment
+fails, the (already created) item is still returned and the error is
+logged.
 
-### DELETE `/api/v1/items/<id>?station=1` – VERIFIZIERT
+### DELETE `/api/v1/items/<id>?station=1` – VERIFIED
 
-- **Response bei Erfolg:** `null`, Status 200.
+- **Response on success:** `null`, status 200.
 
-## Container erstellen und bearbeiten – VERIFIZIERT
+## Creating and editing containers – VERIFIED
 
-Per Wireshark-Mitschnitt des echten mAirList-Clients entschlüsselt: alle
-vier Container-Arten (siehe "Container: eigenes Konzept" oben) lassen
-sich über die normalen Item-Endpunkte (`POST`/`PUT /api/v1/items...`)
-anlegen und befüllen — es gibt keine eigenen Container-Endpunkte. Der
-Trick liegt jeweils im `Class`-Feld und im gewählten Inhalts-Feldnamen.
+Decoded via a Wireshark capture of the real mAirList client: all four
+container types (see "Container: its own concept" above) can be created
+and populated via the normal item endpoints (`POST`/`PUT
+/api/v1/items...`) — there are no dedicated container endpoints. The
+trick lies in the `Class` field and the chosen content field name.
 
-### Hook-Container erstellen
+### Creating a hook container
 
 ```
 POST /api/v1/items
 $doc={"InnerFadeDuration":1,"Title":"Hook-Container","Type":"Container","Class":"HookContainer","Options":["NoLogging"]}
 ```
 
-Response wie bei jedem `POST /items`: eine nackte ID als String, z. B.
-`"2664"`.
+Response as with any `POST /items`: a bare ID as a string, e.g. `"2664"`.
 
-### Automatischer Hook-Container erstellen
+### Creating an automatic hook container
 
 ```
 POST /api/v1/items
 $doc={"InnerFadeDuration":1,"Title":"Automatischer Hook-Container","Type":"Container","Class":"AutoHookContainer","Options":["NoLogging"]}
 ```
 
-### Auto-Hook-Container-Marker (Platzhalter)
+### Auto-hook-container marker (placeholder)
 
 ```
 POST /api/v1/items
 $doc={"Title":"Automatischer Hook Container - Markierung","Type":"Dummy","Class":"AutoHookContainerMarker"}
 ```
 
-Wird als Platzhalter in die Playlist eingefügt, an der Stelle, an der
-der automatische Container später mit echtem Inhalt befüllt wird.
-Selbst inhaltslos (kein `Items`/`Playlist`-Feld nötig).
+Inserted as a placeholder into the playlist, at the position where the
+automatic container will later be filled with real content. Has no
+content of its own (no `Items`/`Playlist` field needed).
 
-### Hook-Container-Inhalt setzen (PUT)
+### Setting hook-container content (PUT)
 
 ```
 PUT /api/v1/items/<id>
 $doc={
   "Comment": "TITEL1\nTITEL2\nTITEL3\n",
-  "Playlist": { "Items": [ {vollständiges Item-Objekt}, ... ] }
+  "Playlist": { "Items": [ {complete item object}, ... ] }
 }
 ```
 
-- **`Comment`** ist eine Textzusammenfassung der enthaltenen Titel
-  (durch Zeilenumbruch getrennt), wird vom Client automatisch gepflegt.
-- ⚠️ Der eigentliche Inhalt liegt unter **`Playlist.Items`**, nicht
-  direkt unter `Items` (siehe Gegenüberstellung unten).
+- **`Comment`** is a text summary of the titles contained (separated by
+  line breaks), maintained automatically by the client.
+- ⚠️ The actual content lives under **`Playlist.Items`**, not directly
+  under `Items` (see the comparison below).
 
-**Implementiert:** `apiItems.js`s `updateContainerContents(containerId,
-itemIds)` setzt genau dieses Format um (Route: `PUT
+**Implemented:** `apiItems.js`'s `updateContainerContents(containerId,
+itemIds)` implements exactly this format (route: `PUT
 /api/items/:id/container-contents` in `server/routes/library.js`,
-Frontend-Bearbeitung in `Playlist.jsx`) — nur für Hook-Container und
-automatische Hook-Container, siehe `docs/FEATURES.md`.
+frontend editing in `Playlist.jsx`) — only for hook containers and
+automatic hook containers, see `docs/FEATURES.md`.
 
-### Regionen-Container erstellen/aktualisieren
+### Creating/updating a region container
 
 ```
-POST /api/v1/items  bzw.  PUT /api/v1/items/<id>
+POST /api/v1/items  or  PUT /api/v1/items/<id>
 $doc={
   "Duration": 14.627,
   "Title": "Regionen-Container",
@@ -667,101 +663,100 @@ $doc={
 }
 ```
 
-⚠️ `Content` ist ein **Objekt** mit numerischen String-Keys (`"1"`,
-`"2"`, …) pro Region, **kein Array**. Zwei Verschachtelungsebenen:
-`Content["1"].Items[0].Playlist.Items[...]` enthält die tatsächlichen
-Titel für Region 1. Regionsnamen selbst kommen aus der
-Server-Konfiguration, nicht aus diesem Feld.
+⚠️ `Content` is an **object** with numeric string keys (`"1"`, `"2"`, …)
+per region, **not an array**. Two levels of nesting:
+`Content["1"].Items[0].Playlist.Items[...]` contains the actual titles
+for region 1. Region names themselves come from the server
+configuration, not from this field.
 
-**Implementiert:** `apiItems.js`s `updateRegionContainerContents(containerId,
-regionItemIds)` setzt genau dieses Format um (Route: `PUT
+**Implemented:** `apiItems.js`'s `updateRegionContainerContents(containerId,
+regionItemIds)` implements exactly this format (route: `PUT
 /api/items/:id/region-container-contents` in `server/routes/library.js`,
-Frontend-Bearbeitung in `Playlist.jsx`, ein Tab pro Region) — siehe
-`docs/FEATURES.md`. `Title`/`Type` müssen bei jedem PUT erneut
-mitgeschickt werden (der aktuelle Container-Zustand wird vorher per GET
-geholt, ähnlich wie beim Hook-Container).
+frontend editing in `Playlist.jsx`, one tab per region) — see
+`docs/FEATURES.md`. `Title`/`Type` must be resent on every PUT (the
+current container state is fetched via GET beforehand, similar to the
+hook container).
 
-### Nachrichten-Container erstellen (leer)
+### Creating a news container (empty)
 
 ```
 POST /api/v1/items
 $doc={"Items":[],"Title":"Nachrichten","Type":"News","Class":"NewsContainer"}
 ```
 
-> ⚠️ **Dieselbe Falle wie beim Lesen (siehe "Container: eigenes
-> Konzept" oben), hier beim Anlegen/Schreiben:** `Type` ist `"News"`,
-> **NICHT** `"Container"` — der Nachrichten-Container tarnt sich beim
-> Schreiben genauso als normale Nachrichtenmeldung wie beim Lesen. Nur
-> `Class: "NewsContainer"` verrät den Container-Charakter. Wer per
-> `POST` einen Container anlegen will, darf sich also nicht von
-> `Type: "Container"` leiten lassen, sondern muss `Class` explizit
-> setzen.
+> ⚠️ **The same trap as when reading (see "Container: its own concept"
+> above), here on creating/writing:** `Type` is `"News"`, **NOT**
+> `"Container"` — the news container disguises itself as a normal news
+> item when writing just as it does when reading. Only
+> `Class: "NewsContainer"` reveals its container nature. Anyone wanting
+> to create a container via `POST` must not be guided by
+> `Type: "Container"`, but must set `Class` explicitly.
 
-### Nachrichten-Container-Verpackung setzen (PUT)
+### Setting news-container wrapping (PUT)
 
 ```
 PUT /api/v1/items/<id>
 $doc={
   "Duration": 22.959,
   "Items": [
-    { "Role": "Opener",   "Item": {vollständiges Item-Objekt} },
+    { "Role": "Opener",   "Item": {complete item object} },
     { "Role": "MusicBed", "Item": {Type:"Bed", Timing:"Excluded", ...} },
     { "Role": "Bumper",   "Item": {Type:"Jingle", ...} },
-    { "Role": "Closer",   "Item": {vollständiges Item-Objekt} }
+    { "Role": "Closer",   "Item": {complete item object} }
   ]
 }
 ```
 
-⚠️ Hier heißt das Feld **`Items`** (anders als beim Hook-Container!),
-und jeder Eintrag hat ein **`Role`-Feld** statt einer reinen Liste. Das
-ist die Verpackung (Opener/Musikbett/Trenner/Closer), **NICHT** der
-eigentliche Nachrichteninhalt. Der Nachrichteninhalt selbst (Inhalt-Tab
-im UI, die tatsächlichen Meldungen) wurde in diesem Mitschnitt nicht
-befüllt — noch offen, siehe "Offene Punkte" unten.
+⚠️ Here the field is called **`Items`** (unlike the hook container!), and
+each entry has a **`Role` field** instead of being a plain list. This is
+the wrapping (opener/music bed/bumper/closer), **NOT** the actual news
+content. The news content itself (the content tab in the UI, the actual
+stories) was not populated in this capture — still open, see "Open
+items" below.
 
-#### Gegenüberstellung: zwei verschiedene Inhalts-Feldnamen — leicht zu verwechseln
+#### Comparison: two different content field names — easily confused
 
-| Container-Art | Feldname für Inhalt | Struktur je Eintrag |
+| Container type | Field name for content | Structure per entry |
 |---|---|---|
-| Hook-Container | `Playlist.Items` | vollständiges Item-Objekt, reine Liste |
-| Nachrichten-Container | `Items` | `{ "Role": "...", "Item": {...} }` — Rolle + Item, keine reine Liste |
+| Hook container | `Playlist.Items` | complete item object, plain list |
+| News container | `Items` | `{ "Role": "...", "Item": {...} }` — role + item, not a plain list |
 
-Beide Container-Arten haben zwar ein Top-Level-Feld, das mit "Items" zu
-tun hat, meinen damit aber strukturell komplett unterschiedliche Dinge.
-`Playlist.Items` beim Hook-Container ist eine flache Liste von Items;
-`Items` beim Nachrichten-Container ist eine Liste von
-Rolle/Item-Paaren für die Verpackung. Code, der einen Container befüllt,
-darf diese beiden Formate nicht verwechseln oder generisch behandeln.
+Both container types have a top-level field with "Items" in the name,
+but structurally mean completely different things. `Playlist.Items` on
+the hook container is a flat list of items; `Items` on the news
+container is a list of role/item pairs for the wrapping. Code that
+populates a container must not confuse or generically handle these two
+formats.
 
-### Container löschen
+### Deleting a container
 
 ```
 DELETE /api/v1/items/<id>?station=1
 ```
 
-Kein Unterschied zu normalen Items (siehe DELETE oben).
+No difference from normal items (see DELETE above).
 
-### Randnotiz: externe URL als Filename funktioniert nicht
+### Side note: external URL as filename doesn't work
 
-Ein Versuch, ein Item mit einer externen HTTP-URL (z. B. `laut.fm`) als
-`Filename` anzulegen, schlug fehl (`"Invalid filename"`). `Class:"File"`
-erwartet einen lokalen Storage-Pfad, keine beliebige URL — offener
-Punkt, falls Streaming-Quellen künftig relevant werden.
+An attempt to create an item with an external HTTP URL (e.g. `laut.fm`)
+as `Filename` failed (`"Invalid filename"`). `Class:"File"` expects a
+local storage path, not an arbitrary URL — an open item if streaming
+sources become relevant in the future.
 
-## Storages / Audio-Dateien
+## Storages / audio files
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/v1/storages?station=1` | **VERIFIZIERT:** liefert die konfigurierten Storages (live getestet: 2 Storages) |
-| GET | `/api/v1/storages/<id>/files/<filename>?quality=default` | Audiodatei, Originalqualität |
-| GET | `/api/v1/storages/<id>/files/<filename>?quality=low` | Audiodatei, transkodiert (serverseitiges Transcoding, z. B. für schnelle PFL/Preview-Wiedergabe) |
+| GET | `/api/v1/storages?station=1` | **VERIFIED:** returns the configured storages (tested live: 2 storages) |
+| GET | `/api/v1/storages/<id>/files/<filename>?quality=default` | audio file, original quality |
+| GET | `/api/v1/storages/<id>/files/<filename>?quality=low` | audio file, transcoded (server-side transcoding, e.g. for fast PFL/preview playback) |
 
-`<filename>` ist URL-encoded, entspricht dem `Filename`-Feld aus der
-Item-Antwort (ohne führendes `/storages/<id>/files/`).
+`<filename>` is URL-encoded, corresponds to the `Filename` field from
+the item response (without the leading `/storages/<id>/files/`).
 
-### Response: `/api/v1/storages?station=1` – VERIFIZIERT
+### Response: `/api/v1/storages?station=1` – VERIFIED
 
-Live gegen die Produktivinstanz getestet:
+Tested live against the production instance:
 
 ```json
 {
@@ -785,33 +780,33 @@ Live gegen die Produktivinstanz getestet:
 }
 ```
 
-**Anmerkungen:**
-- Wrapper-Format `{value, Count}` wie bei `/api/v1/folders`, **kein**
-  rohes Array
-- Felder: `ID`, `Name`, `Description`, `DefaultLocation`, `ItemCount`
-- `ItemCount` ist die Anzahl Items in diesem Storage — Summe über alle
-  Storages ergibt die Gesamtzahl aller Items (hier: 2230 + 1 = 2231),
-  nutzbar als `totalItems` für `getDashboardStats()` ohne alle Ordner
-  einzeln abzufragen
-- `apiRepository.js`s `mapApiStorageToInternal()` mappt auf
-  `{ id, name, location }` (analog zu `sqlRepository.js`s
-  `getStorages()`-Shape): `location` kommt aus `DefaultLocation`.
-  `Description` und `ItemCount` fließen nicht in die gemappten
-  Storage-Objekte ein, `ItemCount` wird aber separat für
-  `getDashboardStats()` aufsummiert (siehe unten)
+**Notes:**
+- Wrapper format `{value, Count}` like `/api/v1/folders`, **not** a raw
+  array
+- Fields: `ID`, `Name`, `Description`, `DefaultLocation`, `ItemCount`
+- `ItemCount` is the number of items in this storage — summing across
+  all storages gives the total number of items (here: 2230 + 1 = 2231),
+  usable as `totalItems` for `getDashboardStats()` without querying
+  every folder individually
+- `apiRepository.js`'s `mapApiStorageToInternal()` maps this to
+  `{ id, name, location }` (analogous to `sqlRepository.js`'s
+  `getStorages()` shape): `location` comes from `DefaultLocation`.
+  `Description` and `ItemCount` don't flow into the mapped storage
+  objects, but `ItemCount` is separately summed for
+  `getDashboardStats()` (see below)
 
 ## Playlists
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/v1/playlists/<yyyy>/<mm>/<dd>/<hh>/0?station=1` | Playlist einer Stunde |
-| GET | `/api/v1/playlists/<yyyy>/<mm>/<dd>/<hh>/0/attributes?station=1` | Playlist-Attribute (separat von den Items) |
-| PUT | `/api/v1/playlists/<yyyy>/<mm>/<dd>/<hh>/0` | Playlist einer Stunde schreiben (Body-Format: Annahme, siehe unten) |
+| GET | `/api/v1/playlists/<yyyy>/<mm>/<dd>/<hh>/0?station=1` | playlist of one hour |
+| GET | `/api/v1/playlists/<yyyy>/<mm>/<dd>/<hh>/0/attributes?station=1` | playlist attributes (separate from the items) |
+| PUT | `/api/v1/playlists/<yyyy>/<mm>/<dd>/<hh>/0` | write an hour's playlist (body format: assumption, see below) |
 
-Die `0` im Pfad ist vermutlich ein Playlist-Index (mAirList kennt mehrere
-Playlists/Player, hier bisher nur Index `0` beobachtet).
+The `0` in the path is presumably a playlist index (mAirList knows
+multiple playlists/players, only index `0` has been observed so far).
 
-### Response: leere Stunde
+### Response: empty hour
 
 ```json
 {
@@ -824,18 +819,18 @@ Playlists/Player, hier bisher nur Index `0` beobachtet).
 }
 ```
 
-**`VersionInfo.Version` deutet auf optimistisches Locking hin** – beim PUT
-muss vermutlich die zuletzt gelesene Version mitgeschickt werden, damit der
-Server nebenläufige Änderungen erkennen kann. Noch zu verifizieren.
+**`VersionInfo.Version` suggests optimistic locking** – on PUT, the
+last-read version presumably needs to be sent along so the server can
+detect concurrent changes. Still to be verified.
 
-### Response: gefüllte Stunde – VERIFIZIERT (korrigiert)
+### Response: populated hour – VERIFIED (corrected)
 
-**Wichtig, korrigiert gegenüber einer früheren Version dieser Doku:**
-Jeder Eintrag in `Items[]` ist **KEIN** `{Class:"Playlist", Time:{...},
-Item:{...}}`-Wrapper. Er **IST** das Item selbst, flach — `Title`,
-`Artist`, `Duration`, `Class` etc. liegen direkt auf dem Eintrag, es gibt
-kein verschachteltes `Item`-Feld. Verifiziert gegen eine echte, gefüllte
-Stunde (`GET /api/v1/playlists/2026/09/05/14/0`):
+**Important, corrected relative to an earlier version of this doc:**
+each entry in `Items[]` is **NOT** a `{Class:"Playlist", Time:{...},
+Item:{...}}` wrapper. It **IS** the item itself, flat — `Title`,
+`Artist`, `Duration`, `Class` etc. sit directly on the entry, there is no
+nested `Item` field. Verified against a real, populated hour
+(`GET /api/v1/playlists/2026/09/05/14/0`):
 
 ```json
 {
@@ -857,7 +852,7 @@ Stunde (`GET /api/v1/playlists/2026/09/05/14/0`):
       "DatabaseID": "...",
       "Title": "...",
       "Class": "File",
-      "Filename": "/storages/1/files/... oder lokaler Windows-Pfad"
+      "Filename": "/storages/1/files/... or a local Windows path"
     }
   ],
   "VersionInfo": {
@@ -868,448 +863,439 @@ Stunde (`GET /api/v1/playlists/2026/09/05/14/0`):
 }
 ```
 
-**Anmerkungen:**
-- `Class` unterscheidet mind. `"Dummy"`, `"File"` und `"Container"`
-- `"Dummy"`-Einträge sind Platzhalter (z. B. Stundenanfangs-Marker wie
-  `"PH Stundenanfang"`). Sie haben **keine** `DatabaseID` und **keine**
-  `Duration` — nur `Title` und, oft, ein explizites `FixTime`
-  (`"HH:MM:SS"`, ohne Millisekunden)
-- Normale `"File"`-Einträge tragen dagegen i. d. R. **kein** eigenes
-  Zeitfeld — ihre tatsächliche Startzeit ergibt sich kumulativ aus der
-  Stundenstart-Zeit plus der Summe der `Duration` aller vorangehenden
-  Einträge (wie bei `sqlRepository.js`'s `resequenceEntries`)
-- Container-Items (z. B. Werbeblöcke) haben eine eigene `Items`-Liste
-  für ihre Unterelemente — VERIFIZIERT, siehe "Item-Typen (`Type`-Feld)"
-  oben. ⚠️ `Class` ist dabei nicht auf `"Container"` beschränkt (u. a.
+**Notes:**
+- `Class` distinguishes at least `"Dummy"`, `"File"`, and `"Container"`
+- `"Dummy"` entries are placeholders (e.g. hour-start markers like
+  `"PH Stundenanfang"` — "hour start"). They have **no** `DatabaseID`
+  and **no** `Duration` — only `Title` and, often, an explicit `FixTime`
+  (`"HH:MM:SS"`, without milliseconds)
+- Normal `"File"` entries, by contrast, usually carry **no** own time
+  field — their actual start time results cumulatively from the hour's
+  start time plus the sum of `Duration` of all preceding entries
+  (as in `sqlRepository.js`'s `resequenceEntries`)
+- Container items (e.g. ad blocks) have their own `Items` list for their
+  sub-elements — VERIFIED, see "Item types (`Type` field)" above.
+  ⚠️ `Class` is not limited to `"Container"` here (among others,
   `NewsContainer`, `HookContainer`, `AutoHookContainer`,
-  `AutoHookContainerMarker`, `RegionContainer` beobachtet) — für eine
-  Container-Erkennung reicht `Type: "Container"` allein nicht aus
-- `Filename` kann sowohl auf `/storages/...` (echte Mediendateien) als auch
-  auf lokale Windows-Pfade zeigen (z. B. bei Dummy-/Platzhalter-Elementen)
+  `AutoHookContainerMarker`, `RegionContainer` observed) — `Type:
+  "Container"` alone is not enough to detect a container
+- `Filename` can point either to `/storages/...` (real media files) or
+  to local Windows paths (e.g. for dummy/placeholder elements)
 
-### PUT `/api/v1/playlists/<yyyy>/<mm>/<dd>/<hh>/0` – VERIFIZIERT
+### PUT `/api/v1/playlists/<yyyy>/<mm>/<dd>/<hh>/0` – VERIFIED
 
-Body-Format identisch zum GET: `{ Items: [...], VersionInfo: {...} }`.
-Verifiziert per PowerShell: Playliste gelesen, unverändert per PUT
-zurückgeschickt.
+Body format identical to GET: `{ Items: [...], VersionInfo: {...} }`.
+Verified via PowerShell: playlist read, sent back unchanged via PUT.
 
 - **Content-Type:** `application/json`
-- **Response bei Erfolg:** JSON-Objekt mit der neuen Versionsnummer,
-  z. B. `{ "Version": 4 }` – der Server erhöht `VersionInfo.Version`
-  bei jedem erfolgreichen Schreibvorgang und gibt die neue Nummer direkt
-  zurück. Das bestätigt das optimistische Locking-Konzept: die Response
-  dient als Bestätigung, dass der Schreibvorgang ohne Konflikt
-  durchgelaufen ist.
-- **Noch offen:** ob beim PUT die zuvor gelesene `VersionInfo.Version`
-  mitgeschickt werden MUSS, damit der Server einen Konflikt erkennen
-  kann (falls zwischenzeitlich jemand anders geschrieben hat), oder ob
-  das rein informativ ist. Für einen echten Konflikttest müsste man
-  zwei überlappende Schreibvorgänge simulieren (z. B. mit veralteter
-  Version schreiben und schauen ob ein Fehler kommt).
+- **Response on success:** JSON object with the new version number,
+  e.g. `{ "Version": 4 }` – the server increments `VersionInfo.Version`
+  on every successful write and returns the new number directly. This
+  confirms the optimistic-locking concept: the response serves as
+  confirmation that the write went through without a conflict.
+- **Still open:** whether the previously read `VersionInfo.Version` MUST
+  be sent along on PUT so the server can detect a conflict (in case
+  someone else wrote in the meantime), or whether that's purely
+  informational. A real conflict test would require simulating two
+  overlapping writes (e.g. writing with a stale version and seeing
+  whether an error results).
 
-**Body-Variante des offiziellen Clients (Wireshark) – `BaseTime`, kein
+**Body variant of the official client (Wireshark) – `BaseTime`, no
 `VersionInfo`:**
 
 ```
 station=1&$doc={"BaseTime":"2026-07-30T16:00:00","Items":[...]}
 ```
 
-- **`BaseTime`** ist der ISO-Zeitstempel des Stundenbeginns — also
-  redundant zum Datum/Stunde im Pfad. Der Client schickt es trotzdem
-  mit; ob der Server es auswertet oder ignoriert, ist nicht geprüft.
-- **`VersionInfo` fehlt im Client-Body komplett.** Unsere Implementierung
-  schickt `{Items, VersionInfo}` als JSON und funktioniert nachweislich
-  (der Server zählt die Version hoch und gibt sie zurück). `VersionInfo`
-  ist beim Schreiben also **offenbar optional** — der Server leitet die
-  neue Version selbst ab, statt die mitgeschickte zu prüfen.
-- Das ist ein **Indiz**, aber kein Beweis dafür, dass es kein
-  optimistisches Locking gibt: möglich bleibt, dass der Server eine
-  *mitgeschickte* Version prüft und eine fehlende schlicht durchwinkt.
-  Der offene Punkt "Verhalten bei echtem Versionskonflikt" bleibt
-  deshalb bestehen.
-- **Kein Handlungsbedarf:** Unsere JSON-Variante mit `VersionInfo` läuft
-  produktiv; `BaseTime` wird nicht gesendet und offensichtlich auch nicht
-  gebraucht.
+- **`BaseTime`** is the ISO timestamp of the hour's start — redundant
+  with the date/hour in the path. The client sends it anyway; whether
+  the server evaluates or ignores it hasn't been checked.
+- **`VersionInfo` is completely absent from the client body.** Our
+  implementation sends `{Items, VersionInfo}` as JSON and is proven to
+  work (the server increments the version and returns it). So
+  `VersionInfo` is **apparently optional** when writing — the server
+  derives the new version itself instead of checking the one sent.
+- This is an **indicator**, but not proof, that there is no optimistic
+  locking: it remains possible that the server checks a *supplied*
+  version and simply waves through a missing one. The open item
+  "behavior on a real version conflict" therefore remains.
+- **No action needed:** our JSON variant with `VersionInfo` runs in
+  production; `BaseTime` is not sent and evidently not needed either.
 
-**Einzelne Slots einfügen/entfernen/umsortieren:** Die API bietet dafür
-keinen eigenen Endpunkt, nur ganze Stunde lesen/schreiben. `apiRepository.js`
-implementiert `reorderPlaylist`/`insertPlaylistItem`/`removePlaylistItem`
-deshalb als Read-Modify-Write: aktuelle Stunde per GET holen, die rohen
-`Items[]`-Einträge unverändert lassen bis auf die eine Mutation, komplett
-per PUT zurückschreiben. Entscheidend dabei: es wird mit den **rohen**
-API-Einträgen gearbeitet (nicht mit einer internen Item-Repräsentation),
-weil `Class:"Dummy"`-Einträge Felder (`Timing`, `State`, `Customized`,
-`FixTimeFrame`, `FixTime`) tragen, die eine interne Repräsentation nicht
-verlustfrei abbilden kann — ein Rekonstruktionsversuch würde diese Felder
-korrumpieren oder verwerfen.
+**Inserting/removing/reordering individual slots:** the API offers no
+dedicated endpoint for this, only reading/writing the whole hour.
+`apiRepository.js` therefore implements `reorderPlaylist`/
+`insertPlaylistItem`/`removePlaylistItem` as read-modify-write: fetch
+the current hour via GET, leave the raw `Items[]` entries unchanged
+except for the one mutation, write the whole thing back via PUT.
+Crucially, this operates on the **raw** API entries (not on an internal
+item representation), because `Class:"Dummy"` entries carry fields
+(`Timing`, `State`, `Customized`, `FixTimeFrame`, `FixTime`) that an
+internal representation cannot map losslessly — a reconstruction attempt
+would corrupt or drop these fields.
 
-## POST-Endpunkte (form-urlencoded) – VERIFIZIERT
+## POST endpoints (form-urlencoded) – VERIFIED
 
-Per Wireshark-Mitschnitt des echten mAirList-Clients (6.3.24.4498) wurden
-die POST-Request-Bodies vollständig entschlüsselt. Das erklärt die vorher
-unlösbare Fehlermeldung `Invalid operation` bei
+Via a Wireshark capture of the real mAirList client (6.3.24.4498), the
+POST request bodies have been fully decoded. This explains the
+previously unsolvable `Invalid operation` error on
 `POST /api/v1/folders/<id>/items`.
 
-**Zentrale Erkenntnis:** Alle POST-Endpunkte des mAirListDB Servers nutzen
-HTTP/1.0 und `Content-Type: application/x-www-form-urlencoded` — nicht
-`application/json`. Das eigentliche JSON steckt URL-kodiert im Parameter
-`$doc`:
+**Central finding:** all POST endpoints of the mAirListDB server use
+HTTP/1.0 and `Content-Type: application/x-www-form-urlencoded` — not
+`application/json`. The actual JSON sits URL-encoded in the `$doc`
+parameter:
 
 ```
 [<operation>&]station=<id>&$doc=<urlencoded JSON>
 ```
 
-Das führende Operations-Flag ist in der Regel ein **nackter Parameter
-ohne Wert** (z. B. `add`, `delete`); `movefrom=<quellId>` ist die
-Ausnahme mit Wert. Fehlt das Flag dort, wo der Server es erwartet,
-antwortet er mit `Invalid operation`.
+The leading operation flag is usually a **bare parameter without a
+value** (e.g. `add`, `delete`); `movefrom=<sourceId>` is the exception
+with a value. If the flag is missing where the server expects it, it
+responds with `Invalid operation`.
 
-**Das gilt nicht nur für POST:** Auch die PUT-Endpunkte nutzen beim
-offiziellen Client form-urlencoded mit `$doc` — mitgeschnitten für
-`PUT /api/v1/items/<id>` (Item aktualisieren) und
-`PUT /api/v1/items/<id>/folders` (siehe unten). Bei
-`PUT /api/v1/items/<id>` akzeptiert der Server **zusätzlich**
-`application/json`; die JSON-Variante in `apiRepository.js`s
-`updateItem()` funktioniert nachweislich und bleibt deshalb unverändert.
+**This applies not only to POST:** the PUT endpoints also use
+form-urlencoded with `$doc` on the official client — captured for
+`PUT /api/v1/items/<id>` (update an item) and
+`PUT /api/v1/items/<id>/folders` (see below). For
+`PUT /api/v1/items/<id>`, the server **additionally** accepts
+`application/json`; the JSON variant in `apiRepository.js`'s
+`updateItem()` is proven to work and therefore remains unchanged.
 
-### POST `/api/v1/items` – Item anlegen
+### POST `/api/v1/items` – create an item
 
 - **Content-Type:** `application/x-www-form-urlencoded`
-- **Body (dekodiert):**
+- **Body (decoded):**
   ```
   station=1&$doc={"Title":"Platzhalter","Type":"Dummy","Class":"Dummy"}
   ```
-- **Kein** Operations-Flag.
-- **Response:** die neue Item-ID als nackter JSON-String, z. B. `"2638"`
-- **Pflichtfelder im `$doc`:** `Class` (sonst `Invalid playlist item
-  class`), zusätzlich `Filename` bei `Class:"File"` (sonst `Invalid
-  location type`) — siehe "Items (Library)" oben.
+- **No** operation flag.
+- **Response:** the new item ID as a bare JSON string, e.g. `"2638"`
+- **Mandatory fields in `$doc`:** `Class` (otherwise `Invalid playlist
+  item class`), additionally `Filename` for `Class:"File"` (otherwise
+  `Invalid location type`) — see "Items (Library)" above.
 
-**Hinweis:** Dieser Endpunkt akzeptiert offenbar *auch*
-`application/json` (per PowerShell erfolgreich getestet, gab ebenfalls
-eine ID zurück). Der offizielle Client nutzt aber form-urlencoded.
+**Note:** this endpoint apparently *also* accepts `application/json`
+(tested successfully via PowerShell, also returned an ID). The official
+client, however, uses form-urlencoded.
 
-### POST `/api/v1/folders/<folderId>/items` – Item einem Ordner zuordnen
+### POST `/api/v1/folders/<folderId>/items` – assign an item to a folder
 
 - **Content-Type:** `application/x-www-form-urlencoded`
-- **Body (dekodiert):**
+- **Body (decoded):**
   ```
   add&station=1&$doc=["2638"]
   ```
-- **Ein Operations-Flag ist zwingend** (fehlt es → `Invalid operation`).
-- `$doc` ist ein JSON-**Array** von Item-IDs als Strings — es können also
-  mehrere Items auf einmal verarbeitet werden.
-- **Response:** `null` (Status 200)
+- **An operation flag is mandatory** (if missing → `Invalid operation`).
+- `$doc` is a JSON **array** of item IDs as strings — so multiple items
+  can be processed at once.
+- **Response:** `null` (status 200)
 
-Dieser Endpunkt akzeptiert **kein** `application/json`: sieben
-JSON-Varianten wurden erfolglos getestet, alle mit `Invalid operation`,
-weil das Operations-Flag fehlte.
+This endpoint accepts **no** `application/json`: seven JSON variants
+were tested unsuccessfully, all with `Invalid operation`, because the
+operation flag was missing.
 
-#### Die drei Operations-Flags – ALLE VERIFIZIERT
+#### The three operation flags – ALL VERIFIED
 
-Per Wireshark-Mitschnitt des offiziellen Clients (6.3.24):
+Via a Wireshark capture of the official client (6.3.24):
 
-| Flag | Body (dekodiert) | Bedeutung |
+| Flag | Body (decoded) | Meaning |
 |---|---|---|
-| `add` | `add&station=1&$doc=["2639"]` | Item(s) diesem Ordner **hinzufügen** |
-| `movefrom=<quellId>` | `movefrom=8&station=1&$doc=["2639"]` | Item(s) aus dem Quellordner **in diesen Ordner verschieben** |
-| `delete` | `delete&station=1&$doc=["2639"]` | Item(s) aus diesem Ordner **entfernen** (löscht die Items nicht) |
+| `add` | `add&station=1&$doc=["2639"]` | **add** item(s) to this folder |
+| `movefrom=<sourceId>` | `movefrom=8&station=1&$doc=["2639"]` | **move** item(s) from the source folder **into this folder** |
+| `delete` | `delete&station=1&$doc=["2639"]` | **remove** item(s) from this folder (does not delete the items) |
 
-`add` und `delete` sind **nackte Flags ohne Wert**; `movefrom` ist ein
-Flag **mit Wert** (der Quellordner-ID).
+`add` and `delete` are **bare flags without a value**; `movefrom` is a
+flag **with a value** (the source folder ID).
 
-Umgesetzt in `apiRepository.js` als `assignItemsToFolder(folderId,
-itemIds)` (`add`) und `removeItemFromFolder(folderId, itemIds)`
-(`delete`). `movefrom` wird bewusst **nicht** verwendet — siehe
-`moveItemToFolder()` unten.
+Implemented in `apiRepository.js` as `assignItemsToFolder(folderId,
+itemIds)` (`add`) and `removeItemFromFolder(folderId, itemIds)`
+(`delete`). `movefrom` is deliberately **not** used — see
+`moveItemToFolder()` below.
 
-### PUT `/api/v1/items/<itemId>/folders` – VERIFIZIERT
+### PUT `/api/v1/items/<itemId>/folders` – VERIFIED
 
 - **Content-Type:** `application/x-www-form-urlencoded`
-- **Body (dekodiert):**
+- **Body (decoded):**
   ```
   station=1&$doc=["5","189","7"]
   ```
-- **Kein** Operations-Flag — der Endpunkt kennt nur "ersetzen".
-- Setzt die **komplette** Ordner-Zugehörigkeit eines Items in einem
-  Request und ersetzt die bisherige Zuordnung vollständig. Idempotent;
-  ein leeres Array entfernt das Item aus allen Ordnern.
+- **No** operation flag — the endpoint only knows "replace".
+- Sets an item's **complete** folder membership in a single request,
+  fully replacing the previous assignment. Idempotent; an empty array
+  removes the item from all folders.
 
-Umgesetzt als `setItemFolders(itemId, folderIds)`.
+Implemented as `setItemFolders(itemId, folderIds)`.
 
-**`moveItemToFolder(id, folderId)` nutzt diesen Endpunkt**, nicht
-`movefrom`: Das SQL-Pendant in `sqlRepository.js` löscht via
-`writeFolder()` *alle* `item_folders`-Zeilen des Items und legt genau
-eine neue an — die Zuordnung wird also komplett ersetzt. `movefrom`
-verschiebt dagegen nur aus *einem* Quellordner; läge das Item in
-mehreren, bliebe es in den übrigen liegen. Ein Nachbauen über
-`getItemFolders()` + je ein Request pro Quellordner wäre zudem nicht
-atomar. `PUT /items/<id>/folders` erledigt dasselbe in einem einzigen,
-idempotenten Request.
+**`moveItemToFolder(id, folderId)` uses this endpoint**, not `movefrom`:
+the SQL counterpart in `sqlRepository.js` deletes *all* of the item's
+`item_folders` rows via `writeFolder()` and creates exactly one new one
+— the assignment is thus completely replaced. `movefrom`, by contrast,
+only moves out of *one* source folder; if the item were in several, it
+would remain in the rest. Rebuilding this via `getItemFolders()` plus one
+request per source folder would also not be atomic. `PUT
+/items/<id>/folders` does the same thing in a single, idempotent
+request.
 
-### POST `/api/v1/storages/<storageId>/files` – Datei hochladen
+### POST `/api/v1/storages/<storageId>/files` – upload a file
 
-- **Content-Type:** `multipart/form-data; boundary=--------<zeitstempel>`
-- Ein Part:
+- **Content-Type:** `multipart/form-data; boundary=--------<timestamp>`
+- One part:
   ```
   Content-Disposition: form-data; name="file"; filename="Nebula (Robot Koch Remix).mp3"
   Content-Type: audio/x-mpg
   Content-Transfer-Encoding: binary
   ```
-- Feldname ist `file`, der Dateiname steht im `filename`-Attribut.
+- The field name is `file`, the filename is in the `filename` attribute.
 
-### Ablauf beim Item-Anlegen im offiziellen Client
+### Flow when creating an item in the official client
 
-1. `POST /api/v1/storages/<id>/files` – Datei hochladen (multipart)
-2. `POST /api/v1/items` – Datensatz anlegen, gibt die neue ID zurück
-3. `POST /api/v1/folders/<id>/items` mit `add&station=1&$doc=["<neueId>"]`
-   – Item dem Ordner zuordnen
+1. `POST /api/v1/storages/<id>/files` – upload the file (multipart)
+2. `POST /api/v1/items` – create the record, returns the new ID
+3. `POST /api/v1/folders/<id>/items` with `add&station=1&$doc=["<newId>"]`
+   – assign the item to the folder
 
-## Voice Tracking – kein eigener Endpunkt
+## Voice Tracking – no dedicated endpoint
 
-Im Wireshark-Mitschnitt wurde der komplette Voice-Tracking-Ablauf des
-offiziellen Clients beobachtet. Zentrale Erkenntnis: **es gibt keine
-dedizierte Voice-Tracking-API.** Ein Voice Track ist technisch ein
-ganz normales Item vom `Type: "Voice"`, dessen Audiodatei über den
-Storage-Upload hochgeladen wurde.
+The complete voice-tracking flow of the official client was observed in
+the Wireshark capture. Central finding: **there is no dedicated
+voice-tracking API.** A voice track is technically a completely normal
+item of `Type: "Voice"`, whose audio file was uploaded via the storage
+upload.
 
-Beobachteter Ablauf:
+Observed flow:
 
 1. `GET /api/v1/stations/<id>/config/VoiceTrackImportFolder`
-   – Zielordner für importierte Voice Tracks. Bei dieser Installation
-   **leer**, also nicht konfiguriert.
+   – target folder for imported voice tracks. **Empty** on this
+   installation, i.e. not configured.
 2. `GET /api/v1/folders/unsorted/config`
-   – `unsorted` ist eine **Spezial-Folder-ID** für nicht einsortierte
-   Elemente (offenbar der Fallback, wenn kein Import-Ordner gesetzt ist).
-   Antwort hier: `{}`.
-3. `POST /api/v1/storages/<id>/files` – Audiodatei hochladen (multipart,
-   siehe oben).
-4. Item mit `Type: "Voice"` anlegen (`POST /api/v1/items`), Rest wie bei
-   jedem anderen Item.
+   – `unsorted` is a **special folder ID** for unsorted elements
+   (apparently the fallback when no import folder is set). Response
+   here: `{}`.
+3. `POST /api/v1/storages/<id>/files` – upload the audio file (multipart,
+   see above).
+4. Create an item with `Type: "Voice"` (`POST /api/v1/items`), the rest
+   as with any other item.
 
-**Für die geplante Phase E (Voice Tracking) heißt das:** die API-seitigen
-Bausteine existieren in `apiRepository.js` bereits alle — Upload,
-`createItem()`, `insertPlaylistItem()`. Es braucht keinen neuen
-Endpunkt-Reverse-Engineering-Schritt mehr, nur noch die Aufnahme- und
-Mix-Logik im Frontend.
+**For the planned phase E (voice tracking), this means:** the API-side
+building blocks already all exist in `apiRepository.js` — upload,
+`createItem()`, `insertPlaylistItem()`. No further endpoint
+reverse-engineering step is needed, only the recording and mix logic in
+the frontend.
 
-**Noch offen:** Welche Felder ein Voice-Track-Item über `Type: "Voice"`
-hinaus braucht (Overlaps/Ramp-Marker zum vorherigen und nächsten
-Element), und ob `VoiceTrackImportFolder` bei gesetztem Wert eine
-Ordner-ID oder einen Pfad enthält — die Installation im Mitschnitt hatte
-den Wert leer.
+**Still open:** which fields a voice-track item needs beyond
+`Type: "Voice"` (overlaps/ramp markers to the previous and next
+element), and whether `VoiceTrackImportFolder`, when set, contains a
+folder ID or a path — the installation in the capture had the value
+empty.
 
-## Stations-Konfiguration und Spezial-IDs
+## Station configuration and special IDs
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/v1/stations/<id>/config` | komplette Stations-Konfiguration |
-| GET | `/api/v1/stations/<id>/config/<key>` | einzelner Konfigurationsschlüssel |
-| GET | `/api/v1/folders/unsorted/config` | Config des Spezial-Ordners `unsorted` |
+| GET | `/api/v1/stations/<id>/config` | complete station configuration |
+| GET | `/api/v1/stations/<id>/config/<key>` | a single configuration key |
+| GET | `/api/v1/folders/unsorted/config` | config of the special folder `unsorted` |
 
-- Beobachteter Konfigurationsschlüssel: **`VoiceTrackImportFolder`**
-  (bei dieser Installation leer). Weitere Schlüssel sind nicht
-  mitgeschnitten — `GET /api/v1/stations/<id>/config` ohne Key sollte
-  die vollständige Liste liefern, das Response-Format ist aber noch
-  nicht protokolliert.
-- **`unsorted` ist eine Spezial-Folder-ID**, kein numerischer Ordner:
-  sie steht für nicht einsortierte Elemente. Ob sie auch bei
-  `GET /api/v1/items?folder=unsorted` funktioniert, ist nicht getestet.
-  `/api/v1/folders/unsorted/config` antwortete hier mit `{}`.
+- Observed configuration key: **`VoiceTrackImportFolder`** (empty on
+  this installation). Other keys were not captured —
+  `GET /api/v1/stations/<id>/config` without a key should return the
+  full list, but the response format has not yet been logged.
+- **`unsorted` is a special folder ID**, not a numeric folder: it
+  represents unsorted elements. Whether it also works with
+  `GET /api/v1/items?folder=unsorted` is untested.
+  `/api/v1/folders/unsorted/config` responded here with `{}`.
 
-## Fehlerbehandlung – teilweise VERIFIZIERT
+## Error handling – partially VERIFIED
 
-Getestet mit einer nicht existierenden Item-ID
+Tested with a non-existent item ID
 (`GET /api/v1/items/999999?station=1`):
 
-- **HTTP-Status:** `404 Not Found`
-- **Body:** `The requested resource was not found.` (Klartext, kein JSON)
+- **HTTP status:** `404 Not Found`
+- **Body:** `The requested resource was not found.` (plain text, not JSON)
 
-Auth-Fehler (aus dem mitmproxy-Test beobachtet, ohne Credentials):
-- **HTTP-Status:** `401`
+Auth error (observed from the mitmproxy test, without credentials):
+- **HTTP status:** `401`
 - **Content-Type:** `text/html`
 
-**Noch offen:** Fehlerformat bei ungültigem PUT-Body (z. B. fehlerhaftes
-JSON, falscher Datentyp, Versionskonflikt bei Playlists) – noch nicht
-getestet.
+**Still open:** error format for an invalid PUT body (e.g. malformed
+JSON, wrong data type, version conflict on playlists) – not yet tested.
 
-## Sonstiges (nur URL beobachtet, Response-Format unbekannt)
+## Miscellaneous (URL observed only, response format unknown)
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/v1/subplaylists?station=1` | Sub-Playlists |
-| GET | `/api/v1/templates/hour/items?station=1` | Hour-Templates |
-| GET | `/api/v1/templates/music/items?station=1` | Music-Templates |
-| GET | `/api/v1/templates/transitions/items?station=1` | Transition-Templates |
-| GET | `/api/v1/templates/<typ>/assignment/<n>?station=1` | Template-Zuordnung |
+| GET | `/api/v1/subplaylists?station=1` | sub-playlists |
+| GET | `/api/v1/templates/hour/items?station=1` | hour templates |
+| GET | `/api/v1/templates/music/items?station=1` | music templates |
+| GET | `/api/v1/templates/transitions/items?station=1` | transition templates |
+| GET | `/api/v1/templates/<type>/assignment/<n>?station=1` | template assignment |
 
-### Attribute-Schema statt eigenem Endpunkt
+### Attribute schema instead of a dedicated endpoint
 
-Es gibt **keinen** dedizierten `/api/v1/attributekeys`-o.ä.-Endpunkt. Das
-Attribut-Schema (welche Attribut-Namen existieren, Freitext vs. Dropdown vs.
-Checkbox, gültige Dropdown-Werte) steckt stattdessen im bereits
-dokumentierten `/api/v1/config`-Feld `StandardAttributes` (XML-String, siehe
-oben). `apiRepository.js`s `getAttributeKeys()` ruft `getConfig()` auf und
-extrahiert die `Name`/`Values`-Angaben daraus per regulärem Ausdruck (kein
-XML-Parser im Projekt vorhanden, das Format ist eng genug umrissen um ohne
-auszukommen) — Rückgabeformat `[{ key, values: [] }]`, analog zu
-`sqlRepository.js`s `getAttributeKeys()`, nur dass `values` hier aus dem
-Schema stammt (nur für `Kind="DropDown"`/`"Check"`-Attribute gefüllt) statt
-aus tatsächlich beobachteten Item-Werten.
+There is **no** dedicated `/api/v1/attributekeys`-or-similar endpoint.
+The attribute schema (which attribute names exist, free text vs.
+dropdown vs. checkbox, valid dropdown values) instead sits in the
+already documented `/api/v1/config` field `StandardAttributes` (XML
+string, see above). `apiRepository.js`'s `getAttributeKeys()` calls
+`getConfig()` and extracts the `Name`/`Values` information from it via a
+regular expression (no XML parser present in the project, the format is
+narrow enough to do without one) — return format `[{ key, values: [] }]`,
+analogous to `sqlRepository.js`'s `getAttributeKeys()`, except that
+`values` here comes from the schema (only populated for
+`Kind="DropDown"`/`"Check"` attributes) instead of from actually
+observed item values.
 
-## Offene Punkte / noch zu verifizieren
+## Open items / still to be verified
 
-- [x] **Container-Schreibformate** (Hook-Container, automatischer
-      Hook-Container, Regionen-Container, Nachrichten-Container-
-      Verpackung) – VERIFIZIERT per Wireshark, siehe "Container
-      erstellen und bearbeiten" oben
-- [ ] **Nachrichten-Container-Inhalt** (die tatsächlichen Meldungen im
-      Inhalt-Tab des UI, nicht die Opener/MusicBed/Bumper/Closer-
-      Verpackung) – im Mitschnitt nicht befüllt, Format unbekannt
-- [ ] **Externe URL als `Filename`** (z. B. Streaming-Quelle wie
-      `laut.fm`) – schlägt fehl (`"Invalid filename"`), `Class:"File"`
-      erwartet einen lokalen Storage-Pfad. Falls Streaming-Quellen
-      künftig relevant werden, muss geklärt werden, ob ein anderer
-      `Type`/`Class`-Wert dafür vorgesehen ist
-- [x] **PUT-Body für `/api/v1/items/<id>`** – verifiziert, siehe oben
-- [x] **Such-Endpunkt für Items** – VERIFIZIERT per Wireshark:
-      `GET /api/v1/items?search=<begriff>&fields=All&limit=50&station=1`,
-      Response im gleichen erweiterten Format wie `?folder=`.
-      `searchItems()` in `apiRepository.js` ist damit **umsetzbar**
-      (bisher leerer Stub), aber noch nicht implementiert
-- [x] **Cover im api-Modus** – GEKLÄRT: das Feld heißt `IconData`
-      (base64-JPEG). Lesbar über `?icons=true` bzw. im
-      `?folder=`-Format, **schreibbar** über den normalen
-      `PUT /api/v1/items/<id>`. Noch nicht im Frontend angebunden
-- [x] **Restrictions schreiben** – VERIFIZIERT:
-      `PUT /api/v1/items/<id>/restrictions`, form-urlencoded mit
-      `$doc={"NotBefore":…,"NotAfter":…,"Hours":"<168 Bit>"}`.
-      Offen bleibt nur die **Bit-Reihenfolge** im `Hours`-String
-      (vermutlich Mo 0 Uhr → So 23 Uhr, gegen die Client-Anzeige zu prüfen)
-- [x] **Voice Tracking** – GEKLÄRT: kein eigener Endpunkt, ein Voice
-      Track ist ein Item mit `Type:"Voice"` plus Storage-Upload, siehe
-      Abschnitt "Voice Tracking"
-- [x] **PUT-Body für `/api/v1/playlists/...`** – verifiziert, siehe oben.
-      Der offizielle Client schickt `BaseTime` und **kein** `VersionInfo`
-      (siehe dort) — `VersionInfo` ist beim Schreiben offenbar optional
-- [x] Fehlerformat bei nicht existierender Ressource – verifiziert
-      (404, Klartext-Body)
-- [ ] Vollständige Liste möglicher `Markers`-Schlüssel – bei ~20
-      stichprobenartig geprüften Items (Musik + alle Sweeper-Items)
-      wurden ausschließlich `CueIn`, `CueOut`, `FadeOut`, `StartNext`
-      beobachtet. `FadeIn`, `FadeEnd`, `Hook`/`HookIn`/`HookOut`,
-      `Ramp1`/`2`/`3` bisher nicht gesehen – noch zu klären ob diese
-      Marker-Typen in diesem Bestand einfach nicht genutzt werden, oder
-      ob sie anders im JSON heißen als angenommen
-- [ ] Verhalten bei echtem Versionskonflikt (zwei überlappende
-      Schreibvorgänge) – bisher nur der Erfolgsfall getestet
-- [ ] Fehlerformat bei ungültigem PUT-Body (kaputtes JSON, falscher
-      Datentyp)
-- [x] `/api/v1/config` Response-Struktur – verifiziert, siehe oben
-      (inkl. `StandardAttributes`-XML-Schema für Item-Attribute)
-- [x] `/api/v1/folders?station=1` ohne `parent` – verifiziert: liefert
-      den kompletten Baum, siehe oben
-- [x] Pagination bei Ordnern – kein Hinweis auf Pagination bei 155
-      Ordnern in einer Antwort. Für Items in großen Ordnern weiterhin
-      ungeklärt (Ordner mit sehr vielen Items noch nicht getestet)
-- [x] Item-Erstellung/-Löschung (`CreateItems`-Capability) – VERIFIZIERT:
-      `POST`/`DELETE /api/v1/items...`, siehe "Items" oben
-- [x] **Ordner-Zuordnung neuer Items** (`POST /api/v1/folders/<id>/items`)
-      – VERIFIZIERT per Wireshark-Mitschnitt: form-urlencoded,
-      `add&station=1&$doc=["<id>",...]`, siehe "POST-Endpunkte
-      (form-urlencoded)" oben. Umgesetzt als `assignItemsToFolder()`,
-      von `createItem()` bei gesetzter `folderId` aufgerufen
-- [x] **Operations-Flag zum Entfernen eines Items aus einem Ordner** –
-      VERIFIZIERT per Wireshark: `delete&station=1&$doc=[...]` auf
-      `POST /api/v1/folders/<id>/items`, dazu `movefrom=<quellId>` zum
-      Verschieben. Ebenfalls verifiziert:
-      `PUT /api/v1/items/<id>/folders` setzt die komplette
-      Ordner-Zugehörigkeit auf einmal. Umgesetzt als
-      `removeItemFromFolder()`, `setItemFolders()` und
-      `moveItemToFolder()` — der Stub ist entfallen
-- [x] **Body-Format aller POST-Endpunkte** – VERIFIZIERT: nicht JSON,
-      sondern `application/x-www-form-urlencoded` mit `$doc`-Parameter
-      (Datei-Upload: `multipart/form-data`), siehe eigener Abschnitt
-- [x] Ordner-Erstellung/Umbenennen/Verschieben/Löschen (`EditFolders`-
-      Capability) – VERIFIZIERT: `POST`/`PUT`/`DELETE /api/v1/folders...`,
-      siehe "Folders (Ordnerbaum)" oben
-- [ ] Storage-Verwaltung (`EditStorages`-Capability, Endpunkt noch nicht
-      beobachtet)
-- [ ] **Response-Format von `GET /api/v1/stations/<id>/config`** (ohne
-      Key) und die vollständige Schlüsselliste — bisher nur
-      `VoiceTrackImportFolder` beobachtet
-- [ ] **Spezial-Folder-ID `unsorted`** – nur
-      `/api/v1/folders/unsorted/config` beobachtet (Antwort `{}`); ob
-      `GET /api/v1/items?folder=unsorted` die nicht einsortierten Items
-      liefert, ist ungetestet
-- [ ] Pagination bei Items in einzelnen großen Ordnern (limit/offset
-      o. ä.?) – bei Folders selbst nicht beobachtet, bei Items noch
-      nicht spezifisch getestet
-- [ ] **`time`-Parameter bei `?artists`/`?titles`:** Format nicht
-      verifiziert (ISO-Timestamp? Datum? Von/Bis-Fenster?). Auch mit
-      `artists`/`titles` als echtem bare Flag (ohne `=`) und ohne
-      `time`-Parameter liefert der Server weiterhin komplette
-      Item-Objekte statt einer Distinct-Liste — Ursache ungeklärt,
-      vermutlich doch der fehlende/falsche `time`-Wert. Nicht
-      blockierend: Artist-/Titel-Suche ist ein Nice-to-have-Feature,
-      `getArtists`/`getTitles` in `apiRepository.js` funktionieren
-      (liefern nur mehr Daten als nötig)
-- [x] **`/api/v1/storages`** – VERIFIZIERT: Endpunkt existiert doch, live
-      getestet (2 Storages), Response-Format vollständig dokumentiert,
-      siehe "Storages / Audio-Dateien" oben
-- [x] **Kein `/api/v1/itemtypes`-Endpunkt gefunden** – weder ein eigener
-      Endpunkt noch ein Feld in `/api/v1/config`. `sqlRepository.js`s
-      `getItemTypes()` braucht ein `DISTINCT type, COUNT(*) GROUP BY type`
-      über die gesamte Items-Tabelle; die API hat dafür keine Entsprechung
-      ohne alle ~155 Ordner einzeln abzufragen. `apiItems.js`s
-      `getItemTypes()` liefert deshalb eine hartcodierte Liste. VERIFIZIERT:
-      24 von 27 Typen aus dem Client-Dropdown sind per Live-Abfrage gegen
-      die echte DB bestätigt, siehe Abschnitt "Item-Typen (Type-Feld)"
-      unten. Nicht verifiziert: Cartwall-Seite, Benutzerdefiniert 1-3 (im
-      Bestand nicht vorhanden). `hasItems`/`note` sind bei dieser Liste
-      weiterhin keine echten DB-Werte, sondern Platzhalter
-      (`hasItems: true`, `note: ""`).
-- [ ] **Kein Logs-/Sendeprotokoll-Endpunkt gefunden** – nur
-      `/api/v1/items/<id>/history` (pro Item) existiert, das skaliert nicht
-      für eine Gesamtübersicht. `getLogs()`/`getRecentLogs()` liefern
-      deshalb ein leeres Ergebnis statt eines Fehlers.
-- [x] **`getDashboardStats`/`getTodayPlaylist` über die API** –
-      `getTodayPlaylist()` ist voll implementiert (baut auf
-      `getPlaylistsByDate`/`getPlaylistById` auf). `getDashboardStats()`
-      liefert `totalFolders` (aus `getFolders().length`), `totalUsers`
-      (aus der DATA_SOURCE-unabhängigen `webAuthDb`), `totalStorages`
-      (Länge der `/api/v1/storages`-Liste) und `totalItems` (Summe aller
-      `ItemCount`-Werte aus derselben Liste, siehe "Storages /
-      Audio-Dateien" oben) – kein Scan aller Ordner nötig.
-- [ ] Rate-Limiting oder Verbindungslimits
-- [x] **Alternative Authentifizierung per Token:** Der Client überträgt
-      den Token aus seiner "Internet Client"-Konfiguration als
-      `Authorization: Bearer <token>`-Header (Wireshark-Mitschnitt).
-      Wie der Token serverseitig erzeugt/verwaltet wird, ist weiterhin
-      offen. Unsere Anbindung nutzt weiter HTTP Basic Auth mit
-      Benutzername/Passwort, was nachweislich für alle Endpunkte
-      funktioniert
-- [ ] **Betrieb über TLS (`SSLPort=9840`)** – laut `dbserver.ini`
-      unterstützt, aber nicht getestet. Solange über Klartext-HTTP
-      gearbeitet wird, gehen Zugangsdaten bei jeder Anfrage unverschlüsselt
-      übers Netz (siehe Sicherheitshinweis unter "Grundlagen")
+- [x] **Container write formats** (hook container, automatic hook
+      container, region container, news-container wrapping) –
+      VERIFIED via Wireshark, see "Creating and editing containers" above
+- [ ] **News-container content** (the actual stories in the content tab
+      of the UI, not the opener/MusicBed/bumper/closer wrapping) – not
+      populated in the capture, format unknown
+- [ ] **External URL as `Filename`** (e.g. a streaming source like
+      `laut.fm`) – fails (`"Invalid filename"`), `Class:"File"` expects
+      a local storage path. If streaming sources become relevant in the
+      future, it must be clarified whether a different `Type`/`Class`
+      value is intended for this
+- [x] **PUT body for `/api/v1/items/<id>`** – verified, see above
+- [x] **Search endpoint for items** – VERIFIED via Wireshark:
+      `GET /api/v1/items?search=<term>&fields=All&limit=50&station=1`,
+      response in the same extended format as `?folder=`.
+      `searchItems()` in `apiRepository.js` is thereby **implementable**
+      (previously an empty stub), but not yet implemented
+- [x] **Cover in api mode** – CLARIFIED: the field is called `IconData`
+      (base64 JPEG). Readable via `?icons=true` or in the `?folder=`
+      format, **writable** via the normal `PUT /api/v1/items/<id>`. Not
+      yet connected in the frontend
+- [x] **Writing restrictions** – VERIFIED:
+      `PUT /api/v1/items/<id>/restrictions`, form-urlencoded with
+      `$doc={"NotBefore":…,"NotAfter":…,"Hours":"<168 bit>"}`.
+      Only the **bit order** in the `Hours` string remains open
+      (presumably Mon 00:00 → Sun 23:00, to be checked against the
+      client display)
+- [x] **Voice tracking** – CLARIFIED: no dedicated endpoint, a voice
+      track is an item with `Type:"Voice"` plus storage upload, see
+      the "Voice Tracking" section
+- [x] **PUT body for `/api/v1/playlists/...`** – verified, see above.
+      The official client sends `BaseTime` and **no** `VersionInfo`
+      (see there) — `VersionInfo` is apparently optional when writing
+- [x] Error format for a non-existent resource – verified
+      (404, plain-text body)
+- [ ] Complete list of possible `Markers` keys – across ~20 spot-checked
+      items (music + all sweeper items), only `CueIn`, `CueOut`,
+      `FadeOut`, `StartNext` were observed. `FadeIn`, `FadeEnd`,
+      `Hook`/`HookIn`/`HookOut`, `Ramp1`/`2`/`3` not seen so far – still
+      to be clarified whether these marker types simply aren't used in
+      this inventory, or whether they're named differently in the JSON
+      than assumed
+- [ ] Behavior on a real version conflict (two overlapping writes) –
+      only the success case tested so far
+- [ ] Error format for an invalid PUT body (broken JSON, wrong data
+      type)
+- [x] `/api/v1/config` response structure – verified, see above
+      (incl. `StandardAttributes` XML schema for item attributes)
+- [x] `/api/v1/folders?station=1` without `parent` – verified: returns
+      the entire tree, see above
+- [x] Pagination for folders – no indication of pagination with 155
+      folders in one response. Still unclear for items in large folders
+      (a folder with very many items not yet tested)
+- [x] Item creation/deletion (`CreateItems` capability) – VERIFIED:
+      `POST`/`DELETE /api/v1/items...`, see "Items" above
+- [x] **Folder assignment of new items** (`POST /api/v1/folders/<id>/items`)
+      – VERIFIED via Wireshark capture: form-urlencoded,
+      `add&station=1&$doc=["<id>",...]`, see "POST endpoints
+      (form-urlencoded)" above. Implemented as `assignItemsToFolder()`,
+      called by `createItem()` when `folderId` is set
+- [x] **Operation flag for removing an item from a folder** –
+      VERIFIED via Wireshark: `delete&station=1&$doc=[...]` on
+      `POST /api/v1/folders/<id>/items`, plus `movefrom=<sourceId>` for
+      moving. Also verified: `PUT /api/v1/items/<id>/folders` sets the
+      complete folder membership at once. Implemented as
+      `removeItemFromFolder()`, `setItemFolders()`, and
+      `moveItemToFolder()` — the stub has been removed
+- [x] **Body format of all POST endpoints** – VERIFIED: not JSON, but
+      `application/x-www-form-urlencoded` with a `$doc` parameter
+      (file upload: `multipart/form-data`), see its own section
+- [x] Folder creation/renaming/moving/deleting (`EditFolders`
+      capability) – VERIFIED: `POST`/`PUT`/`DELETE /api/v1/folders...`,
+      see "Folders (folder tree)" above
+- [ ] Storage management (`EditStorages` capability, endpoint not yet
+      observed)
+- [ ] **Response format of `GET /api/v1/stations/<id>/config`** (without
+      a key) and the complete key list — only `VoiceTrackImportFolder`
+      observed so far
+- [ ] **Special folder ID `unsorted`** – only
+      `/api/v1/folders/unsorted/config` observed (response `{}`);
+      whether `GET /api/v1/items?folder=unsorted` returns the unsorted
+      items is untested
+- [ ] Pagination for items in individual large folders (limit/offset or
+      similar?) – not observed for folders themselves, not yet
+      specifically tested for items
+- [ ] **`time` parameter for `?artists`/`?titles`:** format not
+      verified (ISO timestamp? date? from/to window?). Even with
+      `artists`/`titles` as a real bare flag (without `=`) and without a
+      `time` parameter, the server still returns complete item objects
+      instead of a distinct list — cause unclear, presumably still the
+      missing/wrong `time` value. Not blocking: artist/title search is a
+      nice-to-have feature, `getArtists`/`getTitles` in
+      `apiRepository.js` work (just return more data than necessary)
+- [x] **`/api/v1/storages`** – VERIFIED: the endpoint does exist after
+      all, tested live (2 storages), response format fully documented,
+      see "Storages / audio files" above
+- [x] **No `/api/v1/itemtypes` endpoint found** – neither a dedicated
+      endpoint nor a field in `/api/v1/config`. `sqlRepository.js`'s
+      `getItemTypes()` needs a `DISTINCT type, COUNT(*) GROUP BY type`
+      across the entire items table; the API has no equivalent for this
+      without querying all ~155 folders individually. `apiItems.js`'s
+      `getItemTypes()` therefore returns a hardcoded list. VERIFIED:
+      24 of 27 types from the client dropdown are confirmed via live
+      query against the real DB, see the "Item types (Type field)"
+      section below. Not verified: cartwall page, custom 1-3 (not
+      present in the inventory). `hasItems`/`note` are still not real DB
+      values for this list, but placeholders (`hasItems: true`,
+      `note: ""`).
+- [ ] **No logs/broadcast-log endpoint found** – only
+      `/api/v1/items/<id>/history` (per item) exists, which doesn't
+      scale for an overall overview. `getLogs()`/`getRecentLogs()`
+      therefore return an empty result instead of an error.
+- [x] **`getDashboardStats`/`getTodayPlaylist` via the API** –
+      `getTodayPlaylist()` is fully implemented (builds on
+      `getPlaylistsByDate`/`getPlaylistById`). `getDashboardStats()`
+      returns `totalFolders` (from `getFolders().length`), `totalUsers`
+      (from the `DATA_SOURCE`-independent `webAuthDb`), `totalStorages`
+      (length of the `/api/v1/storages` list), and `totalItems` (sum of
+      all `ItemCount` values from the same list, see "Storages / audio
+      files" above) – no scan of every folder needed.
+- [ ] Rate limiting or connection limits
+- [x] **Alternative authentication via token:** the client transmits the
+      token from its "Internet Client" configuration as an
+      `Authorization: Bearer <token>` header (Wireshark capture). How
+      the token is generated/managed server-side remains open. Our
+      integration continues to use HTTP Basic Auth with
+      username/password, which is proven to work for all endpoints
+- [ ] **Operation over TLS (`SSLPort=9840`)** – supported per
+      `dbserver.ini`, but not tested. As long as plaintext HTTP is used,
+      credentials travel over the network unencrypted on every request
+      (see the security note under "Basics")
 
-## Quelle
+## Source
 
-Beobachtet über die Server-Logausgabe (`mAirListDB Server`-Fenster) beim
-Verbinden eines echten mAirList-6.3.24-Clients, sowie manuelle GET- und
-PUT-Requests über Browser und PowerShell (`Invoke-RestMethod`) gegen die
-laufende Produktivinstanz. Alle dokumentierten PUT-Bodies wurden aktiv
-gegen die echte Datenbank getestet und per anschließendem GET verifiziert
-(Testwerte danach zurückgesetzt). Die POST-Bodies stammen aus einem
-Wireshark-Mitschnitt des echten Clients (siehe "POST-Endpunkte
-(form-urlencoded)").
+Observed via the server log output (`mAirListDB Server` window) while
+connecting a real mAirList 6.3.24 client, as well as manual GET and PUT
+requests via browser and PowerShell (`Invoke-RestMethod`) against the
+running production instance. All documented PUT bodies were actively
+tested against the real database and verified via a subsequent GET
+(test values reset afterward). The POST bodies come from a Wireshark
+capture of the real client (see "POST endpoints (form-urlencoded)").
 
-Ein **zweiter Wireshark-Mitschnitt (07.09.2026)** ergänzte den
-Such-Endpunkt (`?search=`), das Body-Format von
-`PUT /items/<id>/restrictions` inkl. `Hours`-Bitraster, die zusätzlich
-schreibbaren Item-Felder (`IconData`/`Attributes`/`CueData`/`Type`), den
-`BaseTime`-Befund beim Playlist-PUT, den Voice-Tracking-Ablauf sowie die
-Stations-Config-Endpunkte und die Spezial-Folder-ID `unsorted`.
+A **second Wireshark capture (2026-09-07)** added the search endpoint
+(`?search=`), the body format of `PUT /items/<id>/restrictions`
+including the `Hours` bit grid, the additional writable item fields
+(`IconData`/`Attributes`/`CueData`/`Type`), the `BaseTime` finding on
+the playlist PUT, the voice-tracking flow, as well as the station
+config endpoints and the special folder ID `unsorted`.
 
-Stand: 07.09.2026.
+As of: 2026-09-07.

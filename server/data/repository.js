@@ -1,12 +1,12 @@
-// Mock-Repository: haelt alle Daten im Speicher (aus mockData) und schreibt
-// nichts persistent. Das ist der DATA_SOURCE=mock-Modus, gedacht als Test-
-// und Demo-Betrieb ohne Datenbank oder mAirList-Server.
+// Mock repository: keeps all data in memory (from mockData) and doesn't
+// write anything persistently. This is the DATA_SOURCE=mock mode, intended
+// as a test/demo mode without a database or mAirList server.
 //
-// Kein Implementierungsziel mehr: die echten Implementierungen existieren
-// laengst parallel als sqlRepository.js (DATA_SOURCE=sqlite, Standard in
-// Produktion) und apiRepository.js (DATA_SOURCE=api). Alle drei halten
-// dieselben Signaturen ein, umgeschaltet wird ueber DATA_SOURCE; API und
-// Frontend aendern sich dabei nie.
+// No longer an implementation target: the real implementations have long
+// existed in parallel as sqlRepository.js (DATA_SOURCE=sqlite, the default
+// in production) and apiRepository.js (DATA_SOURCE=api). All three keep the
+// same signatures; switching happens via DATA_SOURCE, and the API and
+// frontend never change because of it.
 //
 // Interface (keep stable across implementations):
 //   getFolderTree()          -> nested folder tree
@@ -594,7 +594,7 @@ function resolveAudioPath(id) {
     : storage.location;
 
   // Normalise Windows-style separators, then resolve.
-  // Path-Traversal-Schutz: aufgelöster Pfad muss innerhalb von base liegen.
+  // Path-traversal protection: resolved path must lie within base.
   const relativeParts = item.relativePath.split(/[\\/]+/);
   const resolvedBase = path.resolve(base);
   const resolvedFile = path.resolve(path.join(base, ...relativeParts));
@@ -616,7 +616,7 @@ function uploadFile(storageId, filename, buffer, title) {
 
   const targetDir = resolveStorageDir(storage);
 
-  // Path-Traversal-Schutz: Zielverzeichnis muss innerhalb von UPLOAD_BASE_DIR liegen
+  // Path-traversal protection: target directory must lie within UPLOAD_BASE_DIR
   if (process.env.UPLOAD_BASE_DIR) {
     const resolvedBase = path.resolve(process.env.UPLOAD_BASE_DIR);
     const resolvedTarget = path.resolve(targetDir);

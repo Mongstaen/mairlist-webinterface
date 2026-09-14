@@ -4,7 +4,7 @@
 async function request(path, options) {
   const res = await fetch(`/api${path}`, { credentials: "include", ...options });
   if (!res.ok) {
-    // Strukturierte Fehlermeldung vom Server nutzen, Fallback auf HTTP-Status
+    // Use the structured error message from the server, fall back to HTTP status
     let message;
     try {
       const body = await res.json();

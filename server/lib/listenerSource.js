@@ -1,6 +1,6 @@
-// Hörerzahl-Quelle: laut.fm oder eine benutzerdefinierte JSON-URL.
-// Ergebnis wird kurz zwischengespeichert, damit häufige Dashboard-Polls
-// nicht bei jedem Request die externe Quelle neu abfragen.
+// Listener-count source: laut.fm or a custom JSON URL.
+// The result is cached briefly so frequent dashboard polls don't
+// re-query the external source on every request.
 
 const dns = require("dns").promises;
 
@@ -9,10 +9,11 @@ const FETCH_TIMEOUT_MS = 5000;
 
 let cache = { key: null, value: null, expiresAt: 0 };
 
-// SSRF-Schutz: die custom-URL kommt aus den Settings und wuerde den Server
-// sonst beliebige interne Adressen abfragen lassen (Cloud-Metadata,
-// Nachbardienste im LAN). Geprueft wird die aufgeloeste IP, nicht der
-// Hostname - sonst genuegt ein Name, der auf 127.0.0.1 zeigt.
+// SSRF protection: the custom URL comes from the settings and would
+// otherwise let the server query arbitrary internal addresses (cloud
+// metadata, neighboring services on the LAN). The resolved IP is checked,
+// not the hostname - otherwise a name that points to 127.0.0.1 would be
+// enough to bypass this.
 function isBlockedIp(ip) {
   const v4 = ip.match(/^(?:::ffff:)?(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (v4) {
@@ -20,7 +21,7 @@ function isBlockedIp(ip) {
     if (a === 127 || a === 10 || a === 0) return true;
     if (a === 172 && b >= 16 && b <= 31) return true;
     if (a === 192 && b === 168) return true;
-    if (a === 169 && b === 254) return true; // inkl. 169.254.169.254
+    if (a === 169 && b === 254) return true; // incl. 169.254.169.254
     return false;
   }
   const v6 = ip.toLowerCase().split("%")[0];
@@ -35,23 +36,23 @@ async function assertUrlAllowed(rawUrl) {
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new Error("URL nicht erlaubt (ungültige Adresse)");
+    throw new Error("URL not allowed (invalid address)");
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("URL nicht erlaubt (nur http und https)");
+    throw new Error("URL not allowed (only http and https)");
   }
   const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
   if (/\.local$/i.test(hostname) || /^localhost$/i.test(hostname)) {
-    throw new Error("URL nicht erlaubt (interne Adressen sind gesperrt)");
+    throw new Error("URL not allowed (internal addresses are blocked)");
   }
   let addresses;
   try {
     addresses = await dns.lookup(hostname, { all: true });
   } catch {
-    throw new Error("URL nicht erlaubt (Hostname nicht auflösbar)");
+    throw new Error("URL not allowed (hostname could not be resolved)");
   }
   if (addresses.some((a) => isBlockedIp(a.address))) {
-    throw new Error("URL nicht erlaubt (interne Adressen sind gesperrt)");
+    throw new Error("URL not allowed (internal addresses are blocked)");
   }
 }
 
@@ -77,7 +78,7 @@ async function fetchJson(url) {
   }
 }
 
-// getListenerCount(settings) -> { available: true, count } oder { available: false, error? }
+// getListenerCount(settings) -> { available: true, count } or { available: false, error? }
 async function getListenerCount(settings) {
   const source = settings.listenerSource || "none";
   if (source === "none") return { available: false };
@@ -91,19 +92,19 @@ async function getListenerCount(settings) {
   try {
     if (source === "lautfm") {
       const station = (settings.lautfmStation || "").trim();
-      if (!station) return { available: false, error: "Kein Stationsname hinterlegt" };
+      if (!station) return { available: false, error: "No station name configured" };
       const data = await fetchJson(`https://api.laut.fm/station/${encodeURIComponent(station)}`);
       const count = Number(data?.current_listeners);
-      if (!Number.isFinite(count)) throw new Error("Antwort enthält keine gültige Hörerzahl");
+      if (!Number.isFinite(count)) throw new Error("Response does not contain a valid listener count");
       result = { available: true, count };
     } else if (source === "custom") {
       const url = (settings.listenerUrl || "").trim();
       const jsonPath = (settings.listenerJsonPath || "").trim();
-      if (!url || !jsonPath) return { available: false, error: "URL oder JSON-Pfad fehlt" };
+      if (!url || !jsonPath) return { available: false, error: "URL or JSON path missing" };
       await assertUrlAllowed(url);
       const data = await fetchJson(url);
       const count = Number(readPath(data, jsonPath));
-      if (!Number.isFinite(count)) throw new Error("Antwort enthält keine gültige Hörerzahl unter diesem Pfad");
+      if (!Number.isFinite(count)) throw new Error("Response does not contain a valid listener count at this path");
       result = { available: true, count };
     } else {
       result = { available: false };

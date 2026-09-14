@@ -61,7 +61,7 @@ export default function LibraryTree({
       return next;
     });
 
-  const rootFolder = { id: "all", name: "Alle Elemente", special: true, children: [] };
+  const rootFolder = { id: "all", name: "All Elements", special: true, children: [] };
 
   const selectFolder = (folderId) =>
     onFilterChange(folderId === "all" ? ALL_FILTER : { kind: "folder", folderId });
@@ -72,8 +72,8 @@ export default function LibraryTree({
     onFilterChange({ kind: "attribute", attributeKey, attributeValue });
   const selectEverything = () => onFilterChange({ kind: "everything" });
 
-  if (loading) return <div className="px-3 py-2 text-sm text-zinc-600">Lade Ordner…</div>;
-  if (error) return <div className="px-3 py-2 text-sm text-red-500">Baum nicht verfügbar</div>;
+  if (loading) return <div className="px-3 py-2 text-sm text-zinc-600">Loading folders…</div>;
+  if (error) return <div className="px-3 py-2 text-sm text-red-500">Tree unavailable</div>;
 
   return (
     <div>

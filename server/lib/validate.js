@@ -1,19 +1,19 @@
-// Kleine Eingabepruefungen fuer die Route-Handler. Bewusst ohne zusaetzliche
-// Dependency (kein joi/zod) und bewusst grosszuegig: die Pruefungen sollen
-// kaputte Anfragen mit einem sauberen 400 abfangen, nicht legitime Aufrufe
-// des Frontends aussperren.
+// Small input checks for the route handlers. Deliberately without an
+// additional dependency (no joi/zod) and deliberately generous: the checks
+// are meant to catch broken requests with a clean 400, not lock out
+// legitimate calls from the frontend.
 //
-// Konvention: jede Funktion gibt bei Erfolg den (ggf. normalisierten) Wert
-// zurueck und wirft sonst einen ValidationError. Die Handler fangen das
-// zentral ueber den Error-Handler bzw. wrapValidation() ab.
+// Convention: each function returns the (possibly normalized) value on
+// success and otherwise throws a ValidationError. The handlers catch that
+// centrally via the error handler or wrapValidation().
 
-// Freitext wird auf diese Laenge begrenzt, damit niemand ein Megabyte
-// durch die Repository-Schicht schiebt.
+// Free text is capped at this length so nobody pushes a megabyte through
+// the repository layer.
 const MAX_TEXT_LENGTH = 500;
 
-// IDs sind je nach Backend numerisch (mock/sqlite) oder ein String
-// (mAirListDB-API). Deshalb wird hier bewusst NUR auf "vorhanden und
-// plausibel kurz" geprueft und kein Format erzwungen.
+// IDs are, depending on the backend, numeric (mock/sqlite) or a string
+// (mAirListDB API). That's why only "present and plausibly short" is
+// checked here, deliberately without enforcing a format.
 const MAX_ID_LENGTH = 200;
 
 const PLAYLIST_ID_RE = /^\d{4}-\d{2}-\d{2}-\d{2}$/;
@@ -33,32 +33,32 @@ function isMissing(value) {
 
 // ---- IDs ----
 
-// Pflicht-ID (z.B. req.params.id). Erlaubt Zahlen und Strings, lehnt nur
-// Leeres, Objekte/Arrays und absurd lange Werte ab.
+// Required ID (e.g. req.params.id). Allows numbers and strings, only
+// rejects empty values, objects/arrays, and absurdly long values.
 function requireId(value, label = "id") {
-  if (isMissing(value)) throw new ValidationError(`${label} ist erforderlich`);
+  if (isMissing(value)) throw new ValidationError(`${label} is required`);
   if (typeof value !== "string" && typeof value !== "number") {
-    throw new ValidationError(`${label} ist ungültig`);
+    throw new ValidationError(`${label} is invalid`);
   }
   const str = String(value).trim();
-  if (!str) throw new ValidationError(`${label} ist erforderlich`);
-  if (str.length > MAX_ID_LENGTH) throw new ValidationError(`${label} ist ungültig`);
+  if (!str) throw new ValidationError(`${label} is required`);
+  if (str.length > MAX_ID_LENGTH) throw new ValidationError(`${label} is invalid`);
   return str;
 }
 
-// Optionale ID (z.B. ?folderId= oder body.parentId). Fehlt der Wert, ist das
-// in Ordnung - dann kommt undefined zurueck.
+// Optional ID (e.g. ?folderId= or body.parentId). If the value is missing,
+// that's fine - undefined is returned then.
 function optionalId(value, label = "id") {
   if (isMissing(value)) return undefined;
   return requireId(value, label);
 }
 
-// ---- Datum / Playlist-ID ----
+// ---- Date / playlist ID ----
 
 function requireDate(value, label = "date") {
-  if (isMissing(value)) throw new ValidationError(`${label} ist erforderlich`);
+  if (isMissing(value)) throw new ValidationError(`${label} is required`);
   if (typeof value !== "string" || !DATE_RE.test(value)) {
-    throw new ValidationError(`${label} muss im Format YYYY-MM-DD sein`);
+    throw new ValidationError(`${label} must be in the format YYYY-MM-DD`);
   }
   return value;
 }
@@ -68,34 +68,34 @@ function optionalDate(value, label = "date") {
   return requireDate(value, label);
 }
 
-function requirePlaylistId(value, label = "Playlist-ID") {
-  if (isMissing(value)) throw new ValidationError(`${label} ist erforderlich`);
+function requirePlaylistId(value, label = "playlist ID") {
+  if (isMissing(value)) throw new ValidationError(`${label} is required`);
   if (typeof value !== "string" || !PLAYLIST_ID_RE.test(value)) {
-    throw new ValidationError(`${label} muss im Format YYYY-MM-DD-HH sein`);
+    throw new ValidationError(`${label} must be in the format YYYY-MM-DD-HH`);
   }
   return value;
 }
 
-// ---- Zahlen ----
+// ---- Numbers ----
 
-// Ganzzahl >= 0 mit Obergrenze. Fehlt der Wert, wird fallback geliefert.
+// Integer >= 0 with an upper bound. If the value is missing, fallback is returned.
 function optionalCount(value, label, { fallback, max }) {
   if (isMissing(value)) return fallback;
   const num = Number(value);
-  if (!Number.isInteger(num)) throw new ValidationError(`${label} muss eine ganze Zahl sein`);
-  if (num < 0) throw new ValidationError(`${label} darf nicht negativ sein`);
+  if (!Number.isInteger(num)) throw new ValidationError(`${label} must be an integer`);
+  if (num < 0) throw new ValidationError(`${label} must not be negative`);
   if (max !== undefined && num > max) {
-    throw new ValidationError(`${label} darf höchstens ${max} sein`);
+    throw new ValidationError(`${label} must be at most ${max}`);
   }
   return num;
 }
 
-// Positionen in Playlists sind 1-basierte Ganzzahlen.
+// Positions in playlists are 1-based integers.
 function requirePosition(value, label = "position") {
-  if (isMissing(value)) throw new ValidationError(`${label} ist erforderlich`);
+  if (isMissing(value)) throw new ValidationError(`${label} is required`);
   const num = Number(value);
   if (!Number.isInteger(num) || num < 1) {
-    throw new ValidationError(`${label} muss eine positive ganze Zahl sein`);
+    throw new ValidationError(`${label} must be a positive integer`);
   }
   return num;
 }
@@ -103,31 +103,31 @@ function requirePosition(value, label = "position") {
 // ---- Text ----
 
 function requireText(value, label, { maxLength = MAX_TEXT_LENGTH } = {}) {
-  if (typeof value !== "string") throw new ValidationError(`${label} ist erforderlich`);
+  if (typeof value !== "string") throw new ValidationError(`${label} is required`);
   const trimmed = value.trim();
-  if (!trimmed) throw new ValidationError(`${label} ist erforderlich`);
+  if (!trimmed) throw new ValidationError(`${label} is required`);
   if (trimmed.length > maxLength) {
-    throw new ValidationError(`${label} darf höchstens ${maxLength} Zeichen lang sein`);
+    throw new ValidationError(`${label} must be at most ${maxLength} characters long`);
   }
   return trimmed;
 }
 
 function optionalText(value, label, { maxLength = MAX_TEXT_LENGTH } = {}) {
   if (isMissing(value)) return undefined;
-  if (typeof value !== "string") throw new ValidationError(`${label} ist ungültig`);
+  if (typeof value !== "string") throw new ValidationError(`${label} is invalid`);
   if (value.length > maxLength) {
-    throw new ValidationError(`${label} darf höchstens ${maxLength} Zeichen lang sein`);
+    throw new ValidationError(`${label} must be at most ${maxLength} characters long`);
   }
   return value;
 }
 
-// ---- Objekte ----
+// ---- Objects ----
 
-// Stellt sicher, dass ein Body ueberhaupt ein Objekt ist, bevor darauf
-// zugegriffen wird. Arrays gelten hier nicht als Objekt.
+// Ensures a body is actually an object before it's accessed. Arrays don't
+// count as an object here.
 function requireObject(value, label = "Body") {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new ValidationError(`${label} muss ein Objekt sein`);
+    throw new ValidationError(`${label} must be an object`);
   }
   return value;
 }
@@ -137,33 +137,33 @@ function optionalObject(value, label) {
   return requireObject(value, label);
 }
 
-// Array von IDs (z.B. Container-Inhalt neu setzen). Jedes Element geht
-// durch requireId, ein leeres Array ist erlaubt (Container leeren).
+// Array of IDs (e.g. resetting container content). Each element goes
+// through requireId, an empty array is allowed (emptying a container).
 function requireIdArray(value, label = "ids") {
-  if (!Array.isArray(value)) throw new ValidationError(`${label} muss ein Array sein`);
+  if (!Array.isArray(value)) throw new ValidationError(`${label} must be an array`);
   return value.map((id, i) => requireId(id, `${label}[${i}]`));
 }
 
 const REGION_KEY_RE = /^\d+$/;
 
-// Regionen-Container-Inhalt: { "1": [itemId, ...], "2": [...], ... } — Keys
-// sind numerische Strings (kein Array, siehe docs/MAIRLISTDB-API.md), jeder
-// Wert ein Array von IDs (leer erlaubt, eine leere Region ist gueltig).
+// Region-container content: { "1": [itemId, ...], "2": [...], ... } — keys
+// are numeric strings (not an array, see docs/MAIRLISTDB-API.md), each
+// value an array of IDs (empty allowed, an empty region is valid).
 function requireRegionsMap(value, label = "regions") {
   const obj = requireObject(value, label);
   const result = {};
   for (const [key, ids] of Object.entries(obj)) {
     if (!REGION_KEY_RE.test(key)) {
-      throw new ValidationError(`${label}: Region-Schlüssel "${key}" muss eine Zahl sein`);
+      throw new ValidationError(`${label}: region key "${key}" must be a number`);
     }
     result[key] = requireIdArray(ids, `${label}["${key}"]`);
   }
   return result;
 }
 
-// Verpackt einen Handler so, dass ein ValidationError als 400 mit
-// verstaendlicher Meldung beantwortet wird, statt als 500 im Error-Handler
-// zu landen. Alles andere geht wie gehabt an next().
+// Wraps a handler so a ValidationError is answered as a 400 with an
+// understandable message, instead of landing as a 500 in the error
+// handler. Everything else goes to next() as before.
 function wrapValidation(handler) {
   return (req, res, next) => {
     Promise.resolve()

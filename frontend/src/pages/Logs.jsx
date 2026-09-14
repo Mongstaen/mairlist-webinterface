@@ -46,7 +46,7 @@ export default function Logs({ onNavigate }) {
       setOffset(rows.length);
       setHasMore(rows.length === PAGE_SIZE);
     } catch (e) {
-      setError(e.message || "Logs konnten nicht geladen werden");
+      setError(e.message || "Logs could not be loaded");
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export default function Logs({ onNavigate }) {
       setOffset((prev) => prev + rows.length);
       setHasMore(rows.length === PAGE_SIZE);
     } catch (e) {
-      setError(e.message || "Logs konnten nicht geladen werden");
+      setError(e.message || "Logs could not be loaded");
     } finally {
       setLoadingMore(false);
     }
@@ -97,7 +97,7 @@ export default function Logs({ onNavigate }) {
             onChange={(e) => setDate(e.target.value)}
             className={inputClass}
           />
-          <span className="ml-auto text-xs text-zinc-500">{logs.length} Einträge</span>
+          <span className="ml-auto text-xs text-zinc-500">{logs.length} entries</span>
         </div>
 
         <div className="flex-1 overflow-auto px-6 py-6">
@@ -114,17 +114,17 @@ export default function Logs({ onNavigate }) {
                   <th className="px-4 py-2.5 font-medium">Zeit</th>
                   <th className="px-4 py-2.5 font-medium">Station</th>
                   <th className="px-4 py-2.5 font-medium">Studio</th>
-                  <th className="px-4 py-2.5 font-medium">Titel</th>
+                  <th className="px-4 py-2.5 font-medium">Title</th>
                   <th className="px-4 py-2.5 font-medium">Dauer</th>
-                  <th className="px-4 py-2.5 font-medium">Hörer Start</th>
-                  <th className="px-4 py-2.5 font-medium">Hörer Stop</th>
+                  <th className="px-4 py-2.5 font-medium">Listeners start</th>
+                  <th className="px-4 py-2.5 font-medium">Listeners stop</th>
                   <th className="px-4 py-2.5 font-medium">Info</th>
                 </tr>
               </thead>
               <tbody className="bg-zinc-950">
                 {loading && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-600">Lädt…</td>
+                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-600">Loading…</td>
                   </tr>
                 )}
                 {!loading && logs.map((log, i) => (
@@ -145,7 +145,7 @@ export default function Logs({ onNavigate }) {
                 {!loading && logs.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-8 text-center text-zinc-600">
-                      Keine Einträge für diesen Tag
+                      No entries for this day
                     </td>
                   </tr>
                 )}
@@ -160,7 +160,7 @@ export default function Logs({ onNavigate }) {
                 disabled={loadingMore}
                 className="rounded-md border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800 disabled:opacity-50"
               >
-                {loadingMore ? "Lädt…" : "Mehr laden"}
+                {loadingMore ? "Loading…" : "Load more"}
               </button>
             </div>
           )}

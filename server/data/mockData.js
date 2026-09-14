@@ -12,59 +12,59 @@
 //   question, to be confirmed with the diff method.
 
 const storages = [
-  { id: 1, name: "Musik", location: "C:\\Audio\\Musik" },
-  { id: 2, name: "Verpackung", location: "C:\\Audio\\Verpackung" },
-  { id: 3, name: "Beitraege", location: "C:\\Audio\\Beitraege" },
+  { id: 1, name: "Music", location: "C:\\Audio\\Music" },
+  { id: 2, name: "Packaging", location: "C:\\Audio\\Packaging" },
+  { id: 3, name: "Segments", location: "C:\\Audio\\Segments" },
 ];
 
 // Virtual folder tree, modelled after the real library tree in the screenshots.
 const folders = [
   { id: 1, name: "# Import", parentId: null },
-  { id: 10, name: "Beiträge", parentId: null },
-  { id: 11, name: "aktuell", parentId: 10 },
-  { id: 12, name: "zeitlos", parentId: 10 },
-  { id: 20, name: "Musik", parentId: null },
+  { id: 10, name: "Segments", parentId: null },
+  { id: 11, name: "current", parentId: 10 },
+  { id: 12, name: "timeless", parentId: 10 },
+  { id: 20, name: "Music", parentId: null },
   { id: 21, name: "A - Heavy Current", parentId: 20 },
   { id: 22, name: "B - Medium Current", parentId: 20 },
   { id: 23, name: "C - Light", parentId: 20 },
   { id: 24, name: "D - Recurrent", parentId: 20 },
   { id: 25, name: "E - 2010s", parentId: 20 },
   { id: 26, name: "N - New Music", parentId: 20 },
-  { id: 27, name: "V - Virale Songs", parentId: 20 },
-  { id: 30, name: "Verpackung", parentId: null },
+  { id: 27, name: "V - Viral Songs", parentId: 20 },
+  { id: 30, name: "Packaging", parentId: null },
   { id: 31, name: "Meme Dropper", parentId: 30 },
   { id: 32, name: "Showopener", parentId: 30 },
   { id: 33, name: "Sweeper", parentId: 30 },
   { id: 34, name: "Themes", parentId: 30 },
-  { id: 35, name: "Vollblock Halbblock", parentId: 30 },
+  { id: 35, name: "Full Block Half Block", parentId: 30 },
 ];
 
 // Item types as seen in mAirList. Finer distinctions (Dropper vs. Station ID
 // vs. Promo etc.) are handled via folders and attributes, not separate types.
 const ITEM_TYPES = [
-  { key: "music",       label: "Music",       note: "Regulärer Musiktitel" },
-  { key: "jingle",      label: "Jingle",      note: "Kennung, Soundeffekt, Dropper, Station ID, Promo, Trailer" },
-  { key: "drop",        label: "Drop",        note: "Kurzer Dropper" },
-  { key: "sweeper",     label: "Sweeper",     note: "Übergangs-Element" },
-  { key: "advertising", label: "Advertising", note: "Werbespot, kommerzieller Einschub" },
-  { key: "news",        label: "News",        note: "Nachrichtenbeitrag, Nachrichten-Enhancer" },
-  { key: "weather",     label: "Weather",     note: "Wetterbericht, Wetterbett" },
-  { key: "traffic",     label: "Traffic",     note: "Verkehrsmeldung" },
-  { key: "moderation",  label: "Moderation",  note: "Gesprochener Beitrag, Voice Track" },
-  { key: "bed",         label: "Bed",         note: "Unterlegmusik für Wortbeiträge" },
-  { key: "stream",      label: "Stream",      note: "Live-Stream, externe Audio-Quelle" },
-  { key: "container",   label: "Container",   note: "Dynamischer Container (Hook, Regio, News, generisch)" },
-  { key: "dummy",       label: "Dummy",       note: "Platzhalter, nicht abspielbar" },
-  { key: "silence",     label: "Silence",     note: "Stille, definierte Pause" },
+  { key: "music",       label: "Music",       note: "Regular music track" },
+  { key: "jingle",      label: "Jingle",      note: "ID, sound effect, dropper, station ID, promo, trailer" },
+  { key: "drop",        label: "Drop",        note: "Short dropper" },
+  { key: "sweeper",     label: "Sweeper",     note: "Transition element" },
+  { key: "advertising", label: "Advertising", note: "Ad spot, commercial break" },
+  { key: "news",        label: "News",        note: "News piece, news enhancer" },
+  { key: "weather",     label: "Weather",     note: "Weather report, weather bed" },
+  { key: "traffic",     label: "Traffic",     note: "Traffic report" },
+  { key: "moderation",  label: "Moderation",  note: "Spoken piece, voice track" },
+  { key: "bed",         label: "Bed",         note: "Underscore music for spoken pieces" },
+  { key: "stream",      label: "Stream",      note: "Live stream, external audio source" },
+  { key: "container",   label: "Container",   note: "Dynamic container (hook, region, news, generic)" },
+  { key: "dummy",       label: "Dummy",       note: "Placeholder, not playable" },
+  { key: "silence",     label: "Silence",     note: "Silence, defined pause" },
 ];
 
 // Container subtypes. A container is resolved at runtime (random pick, regional
 // split, live insert). These are the ones the station actually uses.
 const CONTAINER_TYPES = [
-  { key: "hook", label: "Hook Container", note: "zufälliger Hook aus einem Pool" },
-  { key: "regio", label: "Regio Container", note: "regionale Auseinanderschaltung" },
-  { key: "news", label: "Nachrichten Container", note: "lädt zur vollen Stunde die News" },
-  { key: "generic", label: "Container", note: "sonstiger dynamischer Container" },
+  { key: "hook", label: "Hook Container", note: "random hook from a pool" },
+  { key: "regio", label: "Regio Container", note: "regional split" },
+  { key: "news", label: "News Container", note: "loads the news on the hour" },
+  { key: "generic", label: "Container", note: "other dynamic container" },
 ];
 
 // The full cue point set from the Cue Editor screenshot, with the marker
@@ -93,17 +93,17 @@ const CUE_POINTS = [
 // Predefined attribute schema for the item editor's Attribute tab. This is a
 // fixed catalogue of fields the editor knows how to render (select, number,
 // checkbox, ...). Keys match the casing used in items[].attributes below
-// (and in docs/SCHEMA.md's real item_attributes examples, e.g. "BPM", "Jahr")
+// (and in docs/SCHEMA.md's real item_attributes examples, e.g. "BPM", "Jahr" [German data field])
 // so the editor can actually read/write the freeform values items carry.
 const ATTRIBUTE_DEFINITIONS = [
   { key: "Energy", label: "Energy", type: "select", options: ["low", "medium", "high"] },
   { key: "Mood", label: "Mood", type: "select", options: ["happy", "uplifting", "driving", "melancholic", "calm"] },
   { key: "BPM", label: "BPM", type: "number" },
-  { key: "Key", label: "Tonart", type: "text" },
+  { key: "Key", label: "Key", type: "text" },
   { key: "Explicit", label: "Explicit", type: "checkbox" },
-  { key: "OnlineOnly", label: "Nur online", type: "checkbox" },
-  { key: "Category", label: "Kategorie", type: "multiselect", options: ["Pop", "Rock", "Dance", "Hip-Hop", "R&B", "Latin"] },
-  { key: "Notes", label: "Notizen", type: "textarea" },
+  { key: "OnlineOnly", label: "Online only", type: "checkbox" },
+  { key: "Category", label: "Category", type: "multiselect", options: ["Pop", "Rock", "Dance", "Hip-Hop", "R&B", "Latin"] },
+  { key: "Notes", label: "Notes", type: "textarea" },
 ];
 
 // Helper to build a cue object with all keys, unset ones as null.
@@ -113,7 +113,7 @@ function cue(values = {}) {
   return { ...base, ...values };
 }
 
-// Default playback settings (Wiedergabe tab): gain in dB and segue mode.
+// Default playback settings (Playback tab): gain in dB and segue mode.
 // Fade and loop are cue points (see CUE_POINTS: fadeIn/fadeOut/loopIn/loopOut),
 // not item-level settings, so they live in `cue`, not here.
 function playback(values = {}) {
@@ -125,8 +125,8 @@ function playback(values = {}) {
   };
 }
 
-// Items use the fields from the item editor: title, artist (Interpret), type,
-// duration (Länge in seconds), endTime (Ende), internalId, externalId,
+// Items use the fields from the item editor: title, artist,
+// duration (length in seconds), endTime (end), internalId, externalId,
 // comment, color, cover. The list ID equals internalId.
 const items = [
   {
@@ -248,7 +248,7 @@ const items = [
     storageId: 3,
     relativePath: "autohaus-becker-30s.wav",
     folderId: 30,
-    comment: "Kampagne Frühjahr 2026",
+    comment: "Spring 2026 campaign",
     color: null,
     cover: null,
     cue: cue({ cueIn: 0.0, cueOut: 30.0 }),
@@ -269,7 +269,7 @@ const items = [
     storageId: null,
     relativePath: null,
     folderId: 20,
-    comment: "Zufälliger Hook aus A - Heavy Current",
+    comment: "Random hook from A - Heavy Current",
     color: null,
     cover: null,
     cue: cue({}),
@@ -290,7 +290,7 @@ const items = [
     storageId: null,
     relativePath: null,
     folderId: null,
-    comment: "Regionale Werbung und Verkehr",
+    comment: "Regional advertising and traffic",
     color: null,
     cover: null,
     cue: cue({}),
@@ -311,7 +311,7 @@ const items = [
     storageId: null,
     relativePath: null,
     folderId: null,
-    comment: "Lädt aktuelle News beim Abspielen",
+    comment: "Loads the current news on playback",
     color: null,
     cover: null,
     cue: cue({}),

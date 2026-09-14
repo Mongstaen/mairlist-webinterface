@@ -17,10 +17,10 @@
 // block even if an assertion fails midway. A second throwaway item is
 // created *with* a folderId (into its own throwaway folder) to verify the
 // form-urlencoded folder assignment, then both are removed again.
-// Schliesslich wird mit zwei Ordnern A/B und einem weiteren Wegwerf-Item
-// der komplette Zyklus der Ordner-Zugehoerigkeit geprueft
-// (moveItemToFolder / setItemFolders / removeItemFromFolder), ebenfalls
-// mit Aufraeumen im finally-Block.
+// Finally, the complete folder-membership cycle
+// (moveItemToFolder / setItemFolders / removeItemFromFolder) is checked
+// using two folders A/B and another throwaway item, likewise cleaned up
+// in a finally block.
 //
 // Usage:
 //   API_DB_BASE_URL=http://localhost:8840 API_DB_USER=... API_DB_PASSWORD=... \
@@ -374,10 +374,10 @@ async function main() {
 
   // ---- moveItemToFolder / setItemFolders / removeItemFromFolder ----
   //
-  // Legt zwei Testordner A und B sowie ein Testitem in A an und prüft
-  // den kompletten Zyklus der Ordner-Zugehörigkeit:
-  //   move A -> B, dann setItemFolders([A, B]), dann remove aus A.
-  // Der finally-Block räumt Item und beide Ordner in jedem Fall auf.
+  // Creates two test folders A and B plus a test item in A and checks
+  // the complete cycle of folder membership:
+  //   move A -> B, then setItemFolders([A, B]), then remove from A.
+  // The finally block always cleans up the item and both folders.
 
   await run("folder membership (move / set / remove)", async () => {
     const template = await repo.getItemById(itemId);
@@ -390,8 +390,8 @@ async function main() {
     let folderB = null;
     let created = null;
 
-    // Ordner-IDs eines Items als Set von Strings — getItemFolders()
-    // liefert aufgelöste Ordner-Objekte, verglichen wird über die ID.
+    // An item's folder IDs as a set of strings — getItemFolders()
+    // returns resolved folder objects, compared here via the ID.
     const folderIdsOf = async (id) =>
       new Set((await repo.getItemFolders(id)).map((f) => String(f.id)));
 
@@ -419,7 +419,7 @@ async function main() {
         `folders: [${[...initial].join(", ")}]`
       );
 
-      // --- moveItemToFolder: A -> B, danach nur noch in B ---
+      // --- moveItemToFolder: A -> B, then only in B afterward ---
       const moved = await repo.moveItemToFolder(created.id, folderB.id);
       check("moveItemToFolder returns the item", !!moved && String(moved.id) === String(created.id));
 
@@ -435,7 +435,7 @@ async function main() {
         `folders: [${[...afterMove].join(", ")}]`
       );
 
-      // --- setItemFolders: [A, B], danach in beiden ---
+      // --- setItemFolders: [A, B], then in both afterward ---
       await repo.setItemFolders(created.id, [folderA.id, folderB.id]);
       const afterSet = await folderIdsOf(created.id);
       check(
@@ -444,7 +444,7 @@ async function main() {
         `folders: [${[...afterSet].join(", ")}]`
       );
 
-      // --- removeItemFromFolder: raus aus A, B bleibt ---
+      // --- removeItemFromFolder: out of A, B remains ---
       await repo.removeItemFromFolder(folderA.id, [created.id]);
       const afterRemove = await folderIdsOf(created.id);
       check(
@@ -453,7 +453,7 @@ async function main() {
         `folders: [${[...afterRemove].join(", ")}]`
       );
 
-      // Gegenprobe über den Ordner-Listing-Pfad statt über getItemFolders.
+      // Cross-check via the folder-listing path instead of getItemFolders.
       const inA = await repo.getItemsByFolder(folderA.id);
       check(
         "folder A no longer lists the item",

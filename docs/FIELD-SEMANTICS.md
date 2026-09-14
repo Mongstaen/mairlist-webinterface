@@ -1,46 +1,46 @@
 # 🔬 FIELD-SEMANTICS.md
 
-Feldbedeutungen direkt aus einer echten mAirListDB (SQLite `.mldb`) abgeleitet. Das ist das Kronjuwel: nicht geraten, sondern aus echten Daten.
+Field meanings derived directly from a real mAirListDB (SQLite `.mldb`). This is the crown jewel: not guessed, but derived from real data.
 
-> Quelle: JUKA-Datenbank (nicht produktiver Testsender, mAirList 8.x)
+> Source: JUKA database (non-production test station, mAirList 8.x)
 
 ---
 
-## ✅ Bestätigte Einheiten und Formate
+## ✅ Confirmed units and formats
 
-### `items.duration` — Sekunden als REAL
+### `items.duration` — seconds as REAL
 
-Beispiele aus der echten DB:
+Examples from the real DB:
 ```
 155.425   (Lemonade - Louis Tomlinson)
 185.588   (Next to Normal - Lucius)
 166.593   (Etincelles - Luiza & Carbonne)
 ```
 
-**Einheit: Sekunden mit Dezimalstellen.** Unsere bisherige Annahme war richtig.
+**Unit: seconds with decimals.** Our previous assumption was correct.
 
 ---
 
-### `item_cuemarkers.value` — Sekunden als REAL
+### `item_cuemarkers.value` — seconds as REAL
 
-Beispiele für Item 1 (Lemonade, duration=155.425):
+Examples for item 1 (Lemonade, duration=155.425):
 ```
-CueIn   = 0.093   (Stille am Anfang überspringen)
-Ramp1   = 20.515  (Einstiegspunkt für Intro)
-Outro   = 151.995 (Beginn des Outros)
-FadeOut = 155.518 (Fade beginnt, überschreitet leicht duration)
-CueOut  = 156.717 (Ende, auch über duration)
+CueIn   = 0.093   (skip silence at the start)
+Ramp1   = 20.515  (entry point for the intro)
+Outro   = 151.995 (start of the outro)
+FadeOut = 155.518 (fade starts, slightly exceeds duration)
+CueOut  = 156.717 (end, also exceeds duration)
 ```
 
-**Einheit: Sekunden als REAL. CueOut und FadeOut können > duration liegen.**
+**Unit: seconds as REAL. CueOut and FadeOut can exceed duration.**
 
-Die bisherige `toStorage`/`fromStorage` Identitätsfunktion in ItemEditor.jsx ist korrekt, keine Umrechnung nötig.
+The existing `toStorage`/`fromStorage` identity function in ItemEditor.jsx is correct, no conversion needed.
 
 ---
 
-### `item_cuemarkers.type` — PascalCase Strings
+### `item_cuemarkers.type` — PascalCase strings
 
-Exakte Werte aus der DB:
+Exact values from the DB:
 ```
 CueIn, CueOut, FadeIn, FadeOut, FadeEnd
 Ramp1, Ramp2, Ramp3
@@ -48,9 +48,9 @@ HookIn, HookOut
 Outro, StartNext, Preroll
 ```
 
-Unsere bisherigen Keys (`cueIn`, `fadeOut` etc.) müssen beim Lesen/Schreiben gemappt werden:
+Our existing keys (`cueIn`, `fadeOut`, etc.) must be mapped on read/write:
 
-| Unser Key | DB-Typ |
+| Our key | DB type |
 |---|---|
 | `cueIn` | `CueIn` |
 | `cueOut` | `CueOut` |
@@ -66,43 +66,43 @@ Unsere bisherigen Keys (`cueIn`, `fadeOut` etc.) müssen beim Lesen/Schreiben ge
 | `startNext` | `StartNext` |
 | `preroll` | `Preroll` |
 
-> ⚠️ Aus der Doku bekannt, aber nicht in dieser DB: `LoopIn`, `LoopOut`, `HookFade`, `Anchor`. Diese Typen sind im echten Client vorhanden, waren in dieser Testdatenbank nicht gesetzt.
+> ⚠️ Known from the documentation, but not in this DB: `LoopIn`, `LoopOut`, `HookFade`, `Anchor`. These types exist in the real client, but were not set in this test database.
 
 ---
 
-### `items.type` — Freie VARCHAR Strings, PascalCase
+### `items.type` — free VARCHAR strings, PascalCase
 
-Echte Werte aus der DB:
+Real values from the DB:
 ```
 Music, Jingle, Drop, Sweeper
 ```
 
-Kein Enum, kein SQL-Constraint. Jeder String ist möglich. Unsere erweiterte Liste (News, Weather, Traffic, Moderation, Bed, Stream, Container, Dummy, Silence) ist valide.
+No enum, no SQL constraint. Any string is possible. Our extended list (News, Weather, Traffic, Moderation, Bed, Stream, Container, Dummy, Silence) is valid.
 
 ---
 
-### `playlist.slot` — DATETIME, Stundenformat
+### `playlist.slot` — DATETIME, hour format
 
 ```
-Mitternacht:    2026-03-21
-Andere Stunden: 2026-03-21 08:00:00.000
+Midnight:      2026-03-21
+Other hours:   2026-03-21 08:00:00.000
 ```
 
-Für Abfragen immer `LIKE '2026-03-21%'` für einen Tag, oder exaktes Match `= '2026-03-21 08:00:00.000'` für eine Stunde.
+For queries, always use `LIKE '2026-03-21%'` for a full day, or an exact match `= '2026-03-21 08:00:00.000'` for a single hour.
 
 ---
 
 ### `playlist.timing` + `playlist.fixtime`
 
-Fix-Zeiten funktionieren so:
-- `timing = 'Soft'` + `fixtime = '00:00:00.000'` → Item hat eine feste Startzeit
-- `timing = NULL` → normales Item, keine Fix-Zeit
+Fixed times work like this:
+- `timing = 'Soft'` + `fixtime = '00:00:00.000'` → item has a fixed start time
+- `timing = NULL` → normal item, no fixed time
 
 ---
 
-### `item_attributes` — Alle Werte als VARCHAR
+### `item_attributes` — all values as VARCHAR
 
-Auch Zahlen werden als Text gespeichert:
+Even numbers are stored as text:
 ```
 BPM = "86"
 Jahr = "1994"
@@ -110,31 +110,31 @@ Track = "8"
 ISRC = "USLF29400133"
 ```
 
-Beim Lesen: `parseInt()` oder `parseFloat()` je nach Attribut-Definition.
+On read: `parseInt()` or `parseFloat()` depending on the attribute definition.
 
 ---
 
-### `items.filename` — Relativer Pfad im Storage
+### `items.filename` — relative path within the storage
 
 ```
 Louis Tomlinson - Lemonade.mp3
 Luiza - Etincelles.mp3
 ```
 
-Kein Unterordner in dieser DB. Vollständiger Pfad = `storages.defaultLocation + '\' + items.filename`.
+No subfolder in this DB. Full path = `storages.defaultLocation + '\' + items.filename`.
 
 ---
 
-## ❓ Noch zu klären (per Diff-Methode in der Produktiv-DB)
+## ❓ Still to be clarified (via diff method against the production DB)
 
-Diese Felder sind in der Schema bekannt, aber der genaue Inhalt war in der Testdatenbank leer oder unklar:
+These fields are known in the schema, but the exact content was empty or unclear in the test database:
 
-| Feld | Offene Frage |
+| Field | Open question |
 |---|---|
-| `items.color` | Welches Format? RGB-Hex, Integer, Named Color? |
-| `items.endtype` | Welche Werte? ("Normal", "Immediate", "WaitForEnd"?) |
-| `items.options` | Was steht da drin? Kommasepariert, JSON, XML? |
-| `item_cuedata.xmldata` | Format der Hüllkurven-Daten für den Mix Editor |
-| `playlist.xmldata` | Format der lokalen Overrides im Playlist-Eintrag |
-| `item_containercontent` | Wie sind Container-Inhalte verknüpft? |
-| `items.level_loudness` | Einheit? LUFS? Stimmt -14 LUFS als Zielwert? |
+| `items.color` | Which format? RGB hex, integer, named color? |
+| `items.endtype` | Which values? ("Normal", "Immediate", "WaitForEnd"?) |
+| `items.options` | What's stored in there? Comma-separated, JSON, XML? |
+| `item_cuedata.xmldata` | Format of the envelope data for the mix editor |
+| `playlist.xmldata` | Format of local overrides in the playlist entry |
+| `item_containercontent` | How are container contents linked? |
+| `items.level_loudness` | Unit? LUFS? Is -14 LUFS correct as the target value? |

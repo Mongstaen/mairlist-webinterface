@@ -18,13 +18,13 @@ npm install
 
 ## Development
 
-Zwei Terminal Fenster, jeweils in einem Verzeichnis.
+Two terminal windows, each in a different directory.
 
 **Terminal 1: Backend (Port 3001)**
 ```bash
 cd server
 npm run dev
-# oder
+# or
 npm start
 ```
 
@@ -34,60 +34,60 @@ cd frontend
 npm run dev
 ```
 
-Der Browser öffnet sich automatisch auf `http://localhost:3000`.
+The browser opens automatically at `http://localhost:3000`.
 
-Das Frontend proxt `/api` Anfragen automatisch zum Backend auf Port 3001 durch (siehe `vite.config.js`).
+The frontend automatically proxies `/api` requests to the backend on port 3001 (see `vite.config.js`).
 
 ### Mock vs. Real Repository
 
-**Aktuell:** `repository.js` (In-Memory Mock) ist Standard für Entwicklung
-**Produktiv:** `sqlRepository.js` (SQLite via `better-sqlite3`) über `DATA_SOURCE=sqlite` aktivieren
+**Currently:** `repository.js` (in-memory mock) is the default for development
+**Production:** enable `sqlRepository.js` (SQLite via `better-sqlite3`) via `DATA_SOURCE=sqlite`
 
 ```bash
-# Dev (Mock):
+# Dev (mock):
 npm run dev
 
-# Produktiv (SQLite):
+# Production (SQLite):
 DATA_SOURCE=sqlite npm run dev
 ```
 
-DB-Pfad über `DB_PATH`, Standard `./mairlist.mldb`. `repository.js` bleibt für Unit-Tests und schnelle Feedback-Schleifen erhalten, wird aber bei `DATA_SOURCE=sqlite` nicht geladen.
+DB path via `DB_PATH`, default `./mairlist.mldb`. `repository.js` is kept for unit tests and fast feedback loops, but is not loaded when `DATA_SOURCE=sqlite`.
 
-## Mit Claude im VS Code Addon weiterarbeiten
+## Continuing work with Claude in the VS Code add-on
 
-Öffne das Projekt Verzeichnis in VS Code, aktiviere das Claude Extension Addon und verwende die `@codebase` Referenz für den Kontext. Gib diese Dateien im Prompt mit, damit Claude konsistent bleibt:
+Open the project directory in VS Code, activate the Claude extension add-on and use the `@codebase` reference for context. Include these files in the prompt so Claude stays consistent:
 
-- `DESIGN.md` für den Visual Style
-- `README.md` für den Status und die Roadmap
-- Das aktuelle Datenmodell aus `server/data/mockData.js`
+- `DESIGN.md` for the visual style
+- `README.md` for status and roadmap
+- The current data model from `server/data/mockData.js`
 
-## Git Push zu GitHub
+## Git push to GitHub
 
-1. Erstelle ein neues Repo auf GitHub (z.B. `mairlist-web`)
-2. Im lokalen Verzeichnis:
+1. Create a new repo on GitHub (e.g. `mairlist-web`)
+2. In the local directory:
 
 ```bash
 git init
 git add .
-git commit -m "init: mAirList webinterface mit Backend API und Frontend Struktur"
+git commit -m "init: mAirList webinterface with backend API and frontend structure"
 git branch -M main
 git remote add origin https://github.com/dergabriel/mairlist-web.git
 git push -u origin main
 ```
 
-## Struktur
+## Structure
 
 ```
 mairlist-web/
 ├── server/                    # Node.js API
 │   ├── data/
-│   │   ├── mockData.js       # Mock Daten (später SQL)
-│   │   └── repository.js     # Datenschicht (später gegen SQL)
+│   │   ├── mockData.js       # Mock data (later SQL)
+│   │   └── repository.js     # Data layer (later against SQL)
 │   ├── routes/
-│   │   └── library.js        # API Endpunkte
+│   │   └── library.js        # API endpoints
 │   ├── index.js
 │   └── package.json
-├── frontend/                  # React Vite App
+├── frontend/                  # React Vite app
 │   ├── src/
 │   │   ├── pages/
 │   │   │   ├── DatabaseManager.jsx
@@ -99,7 +99,7 @@ mairlist-web/
 │   ├── vite.config.js
 │   ├── tailwind.config.js
 │   └── package.json
-├── DESIGN.md                 # Design System (nicht ändern)
-├── README.md                 # Roadmap und Status
+├── DESIGN.md                 # Design system (do not change)
+├── README.md                 # Roadmap and status
 └── .gitignore
 ```

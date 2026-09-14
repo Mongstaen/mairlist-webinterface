@@ -56,10 +56,10 @@ function mapApiItemToInternal(apiItem, folderId = null) {
   // contained elements in their own Items[] — mapped one level deep (a
   // sub-item's own sub-items, if any, are dropped) so the playlist can show
   // what's inside a container without recursing indefinitely. Playlist
-  // entries (embedded in an hour) use the flat `Items[]` shape (VERIFIZIERT,
-  // see "Response: gefüllte Stunde"); a standalone GET /items/<id> on a
+  // entries (embedded in an hour) use the flat `Items[]` shape (VERIFIED,
+  // see "Response: populated hour"); a standalone GET /items/<id> on a
   // Hook-/AutoHookContainer is unverified but, per PUT/GET symmetry (see
-  // "Hook-Container-Inhalt setzen"), likely echoes back under
+  // "Setting hook-container content"), likely echoes back under
   // `Playlist.Items` instead — checked as a fallback here.
   const rawSubItems = Array.isArray(apiItem.Items)
     ? apiItem.Items
@@ -72,8 +72,8 @@ function mapApiItemToInternal(apiItem, folderId = null) {
 
   // RegionContainer content lives under Content, an OBJECT keyed by
   // numeric-string region ("1", "2", ...), not under Items/Playlist.Items —
-  // see docs/MAIRLISTDB-API.md's "Regionen-Container erstellen/
-  // aktualisieren". Two nesting levels per region:
+  // see docs/MAIRLISTDB-API.md's "Creating/updating a region container".
+  // Two nesting levels per region:
   // Content["1"].Items[0].Playlist.Items[...] holds that region's actual
   // titles. Exposed as { regionKey: internalItem[] } for the frontend's
   // region editor; other container types have no Content field, so this
@@ -318,48 +318,47 @@ async function updateItem(id, changes) {
   return getItemById(id);
 }
 
-// POST /api/v1/items?station=1 — VERIFIZIERT live gegen den mAirListDB
-// Server (siehe docs/MAIRLISTDB-API.md): Pflichtfelder sind Class (ohne
-// -> "Invalid playlist item class") und Filename (ohne -> "Invalid
-// location type"); die Response ist ein nackter JSON-String mit der
-// neuen Item-ID (z. B. "2634"), kein Objekt.
+// POST /api/v1/items?station=1 — VERIFIED live against the mAirListDB
+// server (see docs/MAIRLISTDB-API.md): mandatory fields are Class (without
+// it -> "Invalid playlist item class") and Filename (without it -> "Invalid
+// location type"); the response is a bare JSON string with the new item
+// ID (e.g. "2634"), not an object.
 //
-// mapInternalItemToApi() liefert bereits Class ("File"/"Container" via
-// containerType) und Filename (aus relativePath), also reicht es, das
-// interne Item durch dieselbe Mapping-Funktion wie updateItem/
-// insertPlaylistItem zu schicken. DatabaseID wird dabei mitgeschickt
-// (String(undefined) = "undefined"), ist beim Anlegen aber irrelevant —
-// der Server vergibt ohnehin eine neue ID und ignoriert das Feld
-// offenbar (bestätigt durch den Live-Test).
+// mapInternalItemToApi() already returns Class ("File"/"Container" via
+// containerType) and Filename (from relativePath), so it's enough to send
+// the internal item through the same mapping function as updateItem/
+// insertPlaylistItem. DatabaseID is sent along with it
+// (String(undefined) = "undefined"), but is irrelevant when creating —
+// the server assigns a new ID anyway and apparently ignores the field
+// (confirmed via the live test).
 //
-// Eine mitgegebene folderId wird nach dem Anlegen per
-// assignItemsToFolder() nachgezogen (separater POST, siehe dort).
+// A supplied folderId is applied after creation via
+// assignItemsToFolder() (separate POST, see there).
 async function createItem(data = {}) {
   const apiItem = mapInternalItemToApi({
     ...data,
     containerType: data.containerType ?? null,
   });
-  // Container-Items (Hook-/AutoHookContainer etc.) haben keine eigene Datei —
-  // Filename ist laut Doku ("Container erstellen und bearbeiten") dort kein
-  // Pflichtfeld, nur für normale File-Items.
+  // Container items (Hook-/AutoHookContainer etc.) have no file of their
+  // own — per the docs ("Creating and editing containers"), Filename is not
+  // a mandatory field there, only for normal file items.
   if (!isContainerClass(apiItem.Class) && !apiItem.Filename) {
-    throw new Error("createItem: relativePath (Filename) ist erforderlich");
+    throw new Error("createItem: relativePath (Filename) is required");
   }
   if (apiItem.Filename === undefined) delete apiItem.Filename;
 
   const newId = await apiRequest("POST", "/api/v1/items", { body: apiItem });
 
-  // Das Item existiert an dieser Stelle bereits — schlägt nur die
-  // Ordner-Zuordnung fehl, wäre es falsch, den ganzen Aufruf scheitern zu
-  // lassen (der Aufrufer würde das angelegte Item sonst nie zu sehen
-  // bekommen und es bliebe verwaist zurück). Also loggen und mit dem
-  // ordnerlosen Item weitermachen.
+  // The item already exists at this point — if only the folder assignment
+  // fails, it would be wrong to fail the whole call (the caller would
+  // otherwise never see the created item and it would remain orphaned).
+  // So log it and continue with the folderless item.
   if (data.folderId != null && data.folderId !== "") {
     try {
       await assignItemsToFolder(data.folderId, [newId]);
     } catch (err) {
       console.error(
-        `createItem: Item ${newId} wurde angelegt, die Zuordnung zu Ordner ${data.folderId} ist aber fehlgeschlagen: ${err.message}`
+        `createItem: item ${newId} was created, but assignment to folder ${data.folderId} failed: ${err.message}`
       );
     }
   }
@@ -367,55 +366,55 @@ async function createItem(data = {}) {
   return getItemById(String(newId));
 }
 
-// POST /api/v1/folders/<folderId>/items — VERIFIZIERT per
-// Wireshark-Mitschnitt des offiziellen Clients (siehe
-// docs/MAIRLISTDB-API.md, "POST-Endpunkte (form-urlencoded)"):
+// POST /api/v1/folders/<folderId>/items — VERIFIED via Wireshark capture
+// of the official client (see docs/MAIRLISTDB-API.md, "POST endpoints
+// (form-urlencoded)"):
 //
 //   Content-Type: application/x-www-form-urlencoded
-//   Body:         add&station=1&$doc=<urlencodiertes JSON-Array von IDs>
+//   Body:         add&station=1&$doc=<urlencoded JSON array of IDs>
 //
-// `add` ist ein NACKTES Flag ohne Wert und zwingend erforderlich (fehlt
-// es, antwortet der Server mit "Invalid operation"). `$doc` ist ein
-// JSON-Array von ID-Strings, nicht eine einzelne ID — mehrere Items
-// lassen sich also in einem Request zuordnen. application/json wird von
-// diesem Endpunkt abgelehnt. Response: `null` bei Status 200.
+// `add` is a BARE flag with no value and mandatory (if it's missing, the
+// server responds with "Invalid operation"). `$doc` is a JSON array of ID
+// strings, not a single ID — so multiple items can be assigned in one
+// request. application/json is rejected by this endpoint. Response:
+// `null` on status 200.
 async function assignItemsToFolder(folderId, itemIds) {
   const ids = (Array.isArray(itemIds) ? itemIds : [itemIds])
     .filter((id) => id != null && id !== "")
     .map((id) => String(id));
   if (ids.length === 0) return null;
 
-  // Der Body wird von Hand gebaut statt per URLSearchParams: das nackte
-  // `add`-Flag lässt sich damit nicht ausdrücken (set(k, "") wird immer
-  // als `k=` serialisiert).
+  // The body is built by hand instead of via URLSearchParams: the bare
+  // `add` flag can't be expressed that way (set(k, "") always serializes
+  // as `k=`).
   const formBody = `add&station=${encodeURIComponent(STATION)}&$doc=${encodeURIComponent(JSON.stringify(ids))}`;
 
-  // station steckt bereits im Body (so macht es auch der offizielle
-  // Client), deshalb withStation: false — sonst stünde es doppelt im
-  // Request.
+  // station is already in the body (the official client does it that way
+  // too), hence withStation: false — otherwise it would be in the request
+  // twice.
   return apiRequest("POST", `/api/v1/folders/${encodeURIComponent(folderId)}/items`, {
     formBody,
     withStation: false,
   });
 }
 
-// POST /api/v1/folders/<folderId>/items mit `delete`-Flag — VERIFIZIERT
-// per Wireshark-Mitschnitt des offiziellen Clients:
+// POST /api/v1/folders/<folderId>/items with the `delete` flag — VERIFIED
+// via Wireshark capture of the official client:
 //
 //   delete&station=1&$doc=["2639"]
 //
-// Gegenstück zu assignItemsToFolder(): entfernt die Items *aus diesem
-// einen Ordner*, ohne sie zu löschen — die Zuordnung zu anderen Ordnern
-// bleibt bestehen. `delete` ist wie `add` ein NACKTES Flag ohne Wert.
-// Response: `null` bei Status 200.
+// Counterpart to assignItemsToFolder(): removes the items *from this one
+// folder*, without deleting them — the assignment to other folders
+// remains. `delete`, like `add`, is a BARE flag with no value.
+// Response: `null` on status 200.
 async function removeItemFromFolder(folderId, itemIds) {
   const ids = (Array.isArray(itemIds) ? itemIds : [itemIds])
     .filter((id) => id != null && id !== "")
     .map((id) => String(id));
   if (ids.length === 0) return null;
 
-  // Handgebauter Body wie in assignItemsToFolder(): das nackte
-  // `delete`-Flag lässt sich mit URLSearchParams nicht ausdrücken.
+  // Hand-built body as in assignItemsToFolder(): the bare `delete` flag
+  // can't be expressed with URLSearchParams.
   const formBody = `delete&station=${encodeURIComponent(STATION)}&$doc=${encodeURIComponent(JSON.stringify(ids))}`;
 
   return apiRequest("POST", `/api/v1/folders/${encodeURIComponent(folderId)}/items`, {
@@ -424,19 +423,19 @@ async function removeItemFromFolder(folderId, itemIds) {
   });
 }
 
-// PUT /api/v1/items/<itemId>/folders — VERIFIZIERT per
-// Wireshark-Mitschnitt des offiziellen Clients:
+// PUT /api/v1/items/<itemId>/folders — VERIFIED via
+// Wireshark capture of the official client:
 //
 //   station=1&$doc=["5","189","7"]
 //
-// Setzt die KOMPLETTE Ordner-Zugehörigkeit eines Items in einem Request
-// und ersetzt die bisherige Zuordnung vollständig. Kein Operations-Flag
-// (anders als bei POST /folders/<id>/items) — der Endpunkt kennt nur
-// "ersetzen". Ein leeres Array entfernt das Item aus allen Ordnern.
+// Sets an item's COMPLETE folder membership in one request, fully
+// replacing the previous assignment. No operation flag (unlike POST
+// /folders/<id>/items) — the endpoint only knows "replace". An empty
+// array removes the item from all folders.
 //
-// Das ist die sauberste Operation für Ordner-Zugehörigkeit: idempotent
-// und ohne Zwischenzustand, in dem das Item in zu vielen oder zu wenigen
-// Ordnern liegt.
+// This is the cleanest operation for folder membership: idempotent and
+// with no intermediate state where the item sits in too many or too few
+// folders.
 async function setItemFolders(itemId, folderIds) {
   const ids = (Array.isArray(folderIds) ? folderIds : [folderIds])
     .filter((id) => id != null && id !== "")
@@ -450,27 +449,27 @@ async function setItemFolders(itemId, folderIds) {
   });
 }
 
-// Spiegelt sqlRepository.js's moveItemToFolder(id, folderId): dort löscht
-// writeFolder() *alle* item_folders-Zeilen des Items und legt genau eine
-// neue an (bzw. keine, wenn folderId null ist). Die Signatur hat bewusst
-// keine sourceFolderId — auch der Aufruf aus routes/library.js und dem
-// Frontend (Drag & Drop auf einen Ordner) kennt nur das Ziel.
+// Mirrors sqlRepository.js's moveItemToFolder(id, folderId): there,
+// writeFolder() deletes *all* of the item's item_folders rows and creates
+// exactly one new one (or none, if folderId is null). The signature
+// deliberately has no sourceFolderId — the call from routes/library.js and
+// the frontend (drag & drop onto a folder) also only knows the target.
 //
-// Deshalb wird hier PUT /api/v1/items/<id>/folders (setItemFolders)
-// verwendet und NICHT das ebenfalls verifizierte `movefrom`-Flag von
-// POST /folders/<id>/items:
+// That's why PUT /api/v1/items/<id>/folders (setItemFolders) is used here
+// and NOT the also-verified `movefrom` flag of POST /folders/<id>/items:
 //
-//   - `movefrom=<quelle>` verschiebt nur aus EINEM Quellordner. Liegt das
-//     Item in mehreren Ordnern, bliebe es in den übrigen liegen — das
-//     widerspricht der Semantik des SQL-Pendants, das die Zuordnung
-//     komplett ersetzt. Ein Nachbauen über getItemFolders() + je einen
-//     Request pro Quellordner wäre zudem nicht atomar: bricht es in der
-//     Mitte ab, liegt das Item in einer beliebigen Teilmenge der Ordner.
-//   - PUT /items/<id>/folders setzt die Zugehörigkeit in einem einzigen,
-//     idempotenten Request — kein Zwischenzustand, kein Vorab-Lesen.
+//   - `movefrom=<source>` only moves out of ONE source folder. If the
+//     item is in several folders, it would remain in the rest — that
+//     contradicts the semantics of the SQL counterpart, which replaces
+//     the assignment completely. Rebuilding this via getItemFolders() +
+//     one request per source folder would also not be atomic: if it
+//     breaks off in the middle, the item ends up in an arbitrary subset
+//     of the folders.
+//   - PUT /items/<id>/folders sets the membership in a single, idempotent
+//     request — no intermediate state, no pre-read.
 //
-// folderId == null entfernt das Item aus allen Ordnern (leeres $doc),
-// analog zu writeFolder(wdb, id, null).
+// folderId == null removes the item from all folders (empty $doc),
+// analogous to writeFolder(wdb, id, null).
 async function moveItemToFolder(id, folderId) {
   const item = await getItemById(id);
   if (!item) return null;
@@ -480,9 +479,9 @@ async function moveItemToFolder(id, folderId) {
   return getItemById(id);
 }
 
-// DELETE /api/v1/items/<id>?station=1 — VERIFIZIERT live gegen den
-// mAirListDB Server (siehe docs/MAIRLISTDB-API.md): Response ist `null`
-// bei Status 200.
+// DELETE /api/v1/items/<id>?station=1 — VERIFIED live against the
+// mAirListDB server (see docs/MAIRLISTDB-API.md): response is `null`
+// on status 200.
 async function deleteItem(id) {
   try {
     await apiRequest("DELETE", `/api/v1/items/${encodeURIComponent(id)}`);
@@ -493,24 +492,24 @@ async function deleteItem(id) {
   }
 }
 
-// PUT /api/v1/items/<id> mit Comment + Playlist.Items — VERIFIZIERT per
-// Wireshark-Mitschnitt (siehe docs/MAIRLISTDB-API.md, "Hook-Container-Inhalt
-// setzen"). Gilt nur für Hook-Container/AutoHookContainer: deren Inhalt
-// liegt unter Playlist.Items als flache Liste vollständiger Item-Objekte
-// (NICHT unter Items wie beim Nachrichten-Container, siehe dortige
-// Gegenüberstellung in der Doku).
+// PUT /api/v1/items/<id> with Comment + Playlist.Items — VERIFIED via
+// Wireshark capture (see docs/MAIRLISTDB-API.md, "Setting hook-container
+// content"). Applies only to Hook-/AutoHookContainer: their content lives
+// under Playlist.Items as a flat list of complete item objects
+// (NOT under Items as with the news container, see the comparison there
+// in the docs).
 //
-// Der aktuelle Container-Zustand wird zuerst per GET geholt, damit
-// Class/Type/InnerFadeDuration/Options unverändert im PUT-Body mitgehen —
-// nur Comment und Playlist.Items werden ersetzt. Jedes itemId wird per
-// getItemById aufgelöst und über mapInternalItemToApi in ein vollständiges
-// API-Item-Objekt gemappt (gleiches Mapping wie beim normalen Item-PUT/POST),
-// nicht nur als bloße ID referenziert.
-// Löst eine Liste von Item-IDs zu vollständigen API-Item-Objekten auf
-// (getItemById + mapInternalItemToApi), wie es sowohl updateContainerContents
-// als auch updateRegionContainerContents für ihren jeweiligen Inhalt
-// brauchen. IDs, die sich nicht auflösen lassen (gelöschtes Item o.ä.),
-// werden stillschweigend übersprungen statt den ganzen Vorgang abzubrechen.
+// The current container state is fetched via GET first, so
+// Class/Type/InnerFadeDuration/Options are carried unchanged in the PUT
+// body — only Comment and Playlist.Items are replaced. Each itemId is
+// resolved via getItemById and mapped into a complete API item object via
+// mapInternalItemToApi (the same mapping as for the normal item PUT/POST),
+// not just referenced as a bare ID.
+// Resolves a list of item IDs into complete API item objects
+// (getItemById + mapInternalItemToApi), as needed by both
+// updateContainerContents and updateRegionContainerContents for their
+// respective content. IDs that cannot be resolved (deleted item or
+// similar) are silently skipped instead of aborting the whole operation.
 async function resolveItemsForContainer(itemIds) {
   const ids = (Array.isArray(itemIds) ? itemIds : [])
     .filter((id) => id != null && id !== "")
@@ -542,16 +541,16 @@ async function updateContainerContents(containerId, itemIds) {
   return getItemById(containerId);
 }
 
-// PUT /api/v1/items/<id> mit Content — VERIFIZIERT per Wireshark-Mitschnitt
-// (siehe docs/MAIRLISTDB-API.md, "Regionen-Container erstellen/
-// aktualisieren"). Content ist ein OBJEKT mit numerischen String-Keys pro
-// Region ("1", "2", ...), kein Array. Jede Region hat genau ein Items[0],
-// das selbst wieder ein Container-Wrapper ist, dessen Playlist.Items die
-// tatsächlichen Titel für diese Region enthält (zwei Verschachtelungs-
-// ebenen: Content["1"].Items[0].Playlist.Items[...]).
+// PUT /api/v1/items/<id> with Content — VERIFIED via Wireshark capture
+// (see docs/MAIRLISTDB-API.md, "Creating/updating region containers").
+// Content is an OBJECT with numeric string keys per region ("1", "2", ...),
+// not an array. Each region has exactly one Items[0], which is itself a
+// container wrapper whose Playlist.Items holds the actual titles for that
+// region (two levels of nesting:
+// Content["1"].Items[0].Playlist.Items[...]).
 //
-// regionItemIds: { "1": [itemId, ...], "2": [...], ... } — die Anzahl der
-// Regionen ergibt sich aus den vorhandenen Keys, es gibt keine feste Anzahl.
+// regionItemIds: { "1": [itemId, ...], "2": [...], ... } — the number of
+// regions results from the keys present, there's no fixed count.
 async function updateRegionContainerContents(containerId, regionItemIds) {
   const current = await apiRequest("GET", `/api/v1/items/${encodeURIComponent(containerId)}`);
   if (!current) return null;
@@ -769,31 +768,31 @@ async function getTitles(searchTerm) {
 // the Container/Class caveat — Container is not a Type value, it's a
 // separate concept keyed off the Class field.
 const VERIFIED_ITEM_TYPES = [
-  { db: "Music", label: "Musik" },
+  { db: "Music", label: "Music" },
   { db: "Voice", label: "Moderation" },
-  { db: "News", label: "Nachrichten" },
-  { db: "Weather", label: "Wetter" },
-  { db: "Traffic", label: "Verkehr" },
-  { db: "Advertising", label: "Werbung" },
-  { db: "Package", label: "Beitrag" },
+  { db: "News", label: "News" },
+  { db: "Weather", label: "Weather" },
+  { db: "Traffic", label: "Traffic" },
+  { db: "Advertising", label: "Advertising" },
+  { db: "Package", label: "Segment" },
   { db: "Jingle", label: "Jingle" },
   { db: "Sweeper", label: "Sweeper" },
   { db: "Drop", label: "Drop" },
   { db: "Trailer", label: "Trailer" },
   { db: "Promo", label: "Promo" },
-  { db: "Sponsorship", label: "Sponsor-Jingle" },
-  { db: "StationID", label: "Station-ID" },
-  { db: "Bed", label: "Bett" },
+  { db: "Sponsorship", label: "Sponsor Jingle" },
+  { db: "StationID", label: "Station ID" },
+  { db: "Bed", label: "Bed" },
   { db: "Instrumental", label: "Instrumental" },
-  { db: "Show", label: "Sendung" },
+  { db: "Show", label: "Show" },
   { db: "Stream", label: "Stream" },
   { db: "Playlist", label: "Playlist" },
-  { db: "Command", label: "Befehl" },
-  { db: "Break", label: "Unterbrechung" },
-  { db: "Silence", label: "Stille" },
-  { db: "Error", label: "Fehler" },
-  { db: "Other", label: "Andere" },
-  { db: "Dummy", label: "Platzhalter" },
+  { db: "Command", label: "Command" },
+  { db: "Break", label: "Break" },
+  { db: "Silence", label: "Silence" },
+  { db: "Error", label: "Error" },
+  { db: "Other", label: "Other" },
+  { db: "Dummy", label: "Placeholder" },
 ];
 function getItemTypes() {
   return VERIFIED_ITEM_TYPES.map((t) => ({

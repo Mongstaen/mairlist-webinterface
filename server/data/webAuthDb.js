@@ -18,9 +18,9 @@ const path = require("path");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 
-// Cost-Faktor fuer neu gesetzte Passwoerter. Aeltere Hashes (Cost 10) bleiben
-// gueltig: bcrypt liest den Cost aus dem Hash selbst, compareSync verifiziert
-// sie also weiterhin. Ein Rehash bestehender Passwoerter ist nicht noetig.
+// Cost factor for newly set passwords. Older hashes (cost 10) remain
+// valid: bcrypt reads the cost from the hash itself, so compareSync still
+// verifies them. Rehashing existing passwords is not necessary.
 const BCRYPT_COST = 12;
 
 const DB_PATH = process.env.WEB_AUTH_DB_PATH || path.join(__dirname, "../webinterface-auth.json");
@@ -85,13 +85,13 @@ function bootstrapAdmin() {
   persist();
 
   console.log("=".repeat(60));
-  console.log("Webinterface: Erster Start, Admin-Account angelegt.");
-  console.log("  Benutzername: admin");
+  console.log("Webinterface: first start, admin account created.");
+  console.log("  Username: admin");
   if (process.env.INITIAL_ADMIN_PASSWORD) {
-    console.log("  Passwort: (aus INITIAL_ADMIN_PASSWORD)");
+    console.log("  Password: (from INITIAL_ADMIN_PASSWORD)");
   } else {
-    console.log(`  Passwort: ${password}`);
-    console.log("  Bitte sofort ändern!");
+    console.log(`  Password: ${password}`);
+    console.log("  Please change it immediately!");
   }
   console.log("=".repeat(60));
 }

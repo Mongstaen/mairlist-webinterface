@@ -19,7 +19,7 @@ export default function Login({ onLogin }) {
       await login(username, password);
       onLogin?.();
     } catch (e) {
-      setError(e.message === "Ungültige Zugangsdaten" ? e.message : "Ungültige Zugangsdaten");
+      setError(e.message === "Invalid credentials" ? e.message : "Invalid credentials");
     } finally {
       setSubmitting(false);
     }
@@ -44,7 +44,7 @@ export default function Login({ onLogin }) {
 
         <div className="space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-xs text-zinc-400">Benutzername</span>
+            <span className="mb-1.5 block text-xs text-zinc-400">Username</span>
             <div className="relative flex items-center">
               <User size={15} className="absolute left-3 text-zinc-500" />
               <input
@@ -53,13 +53,13 @@ export default function Login({ onLogin }) {
                 autoFocus
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Benutzername"
+                placeholder="Username"
               />
             </div>
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-xs text-zinc-400">Passwort</span>
+            <span className="mb-1.5 block text-xs text-zinc-400">Password</span>
             <div className="relative flex items-center">
               <Lock size={15} className="absolute left-3 text-zinc-500" />
               <input
@@ -68,7 +68,7 @@ export default function Login({ onLogin }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Passwort"
+                placeholder="Password"
               />
             </div>
           </label>

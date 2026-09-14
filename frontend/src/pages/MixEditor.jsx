@@ -417,7 +417,7 @@ function TrackRow({
                 dragBelowKey === point.key ? "opacity-30" : ""
               }`}
               style={{ left: `${pct}%`, width: isEmphasized ? 10 : 6, marginLeft: isEmphasized ? -5 : -3 }}
-              title={`${point.label} verschieben — nach unten ziehen zum Löschen`}
+              title={`Move ${point.label} — drag down to delete`}
             >
               <div
                 className="mx-auto h-full"
@@ -427,7 +427,7 @@ function TrackRow({
                 className="pointer-events-none absolute -left-1 top-0 -translate-y-full whitespace-nowrap rounded-sm px-1 text-[9px] font-medium leading-tight"
                 style={{ color: point.color, backgroundColor: "rgba(9, 9, 11, 0.85)" }}
               >
-                {dragBelowKey === point.key ? "Löschen" : point.label}
+                {dragBelowKey === point.key ? "Delete" : point.label}
               </div>
             </div>
           );
@@ -450,7 +450,7 @@ function OverlapFocusButton({ leftPx, onFocus, focusActive }) {
           : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-orange-500 hover:text-orange-400"
       }`}
       style={{ left: leftPx }}
-      title="Fokus-Modus: Übergang abspielen"
+      title="Focus mode: play transition"
     >
       <Focus size={11} />
     </button>
@@ -483,7 +483,7 @@ function TimelineRuler({ totalWidth, pxPerSec }) {
 function CueChipStrip({ track, trackIndex, onJump, onChipDragStart, onChipDragEnd }) {
   const [draggingKey, setDraggingKey] = useState(null);
   if (!track) {
-    return <div className="px-6 py-3 text-xs text-zinc-600">Spur wählen, um Cue-Punkte zu sehen.</div>;
+    return <div className="px-6 py-3 text-xs text-zinc-600">Select a track to see cue points.</div>;
   }
   const cue = track.item.cue || {};
 
@@ -514,7 +514,7 @@ function CueChipStrip({ track, trackIndex, onJump, onChipDragStart, onChipDragEn
               isSet ? "text-zinc-950" : "bg-zinc-800 text-zinc-600"
             } ${draggingKey === p.key ? "opacity-50" : ""}`}
             style={isSet ? { backgroundColor: p.color } : undefined}
-            title={isSet ? mmssHundredths(Number(rawVal)) : `${p.label} (nicht gesetzt) — auf Spur ziehen zum Setzen`}
+            title={isSet ? mmssHundredths(Number(rawVal)) : `${p.label} (not set) — drag onto track to set`}
           >
             {p.label}{isSet ? ` · ${mmssHundredths(Number(rawVal))}` : ""}
           </button>
@@ -1005,14 +1005,14 @@ export default function MixEditor({ context, onBack, onNavigate }) {
           </header>
           <div className="flex items-center border-b border-zinc-800 px-6 py-3">
             <button onClick={handleBack} className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200">
-              <ChevronLeft size={16} /> Zurück zur Playlist
+              <ChevronLeft size={16} /> Back to playlist
             </button>
           </div>
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
             <Sliders size={28} className="mb-1 text-zinc-700" />
-            <div className="text-sm text-zinc-400">Kein Mix ausgewählt.</div>
+            <div className="text-sm text-zinc-400">No mix selected.</div>
             <div className="max-w-sm text-xs text-zinc-600">
-              Wähle mindestens zwei Items in der Playlist aus (Strg+Klick), um sie hier zu mischen.
+              Select at least two items in the playlist (Ctrl+click) to mix them here.
             </div>
           </div>
         </main>
@@ -1038,7 +1038,7 @@ export default function MixEditor({ context, onBack, onNavigate }) {
         {/* Sub toolbar */}
         <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
           <button onClick={handleBack} className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200">
-            <ChevronLeft size={16} /> Zurück zur Playlist
+            <ChevronLeft size={16} /> Back to playlist
           </button>
 
           <div className="flex items-center gap-2">
@@ -1046,10 +1046,10 @@ export default function MixEditor({ context, onBack, onNavigate }) {
               onClick={playing ? stopAll : playAll}
               disabled={!buffersReady && !playing}
               className="flex items-center gap-1.5 rounded-md border border-zinc-800 px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 disabled:opacity-50"
-              title={!buffersReady && !playing ? "Audio wird geladen…" : undefined}
+              title={!buffersReady && !playing ? "Loading audio…" : undefined}
             >
               {playing ? <Pause size={14} /> : <Play size={14} />}
-              {playing ? "Pause" : buffersReady ? "Abspielen" : "Lädt…"}
+              {playing ? "Pause" : buffersReady ? "Play" : "Loading…"}
             </button>
             <button
               onClick={stopAll}
@@ -1062,9 +1062,9 @@ export default function MixEditor({ context, onBack, onNavigate }) {
                 onClick={handleSaveHour}
                 disabled={!hasChanges || saving}
                 className="flex items-center gap-2 rounded-md border border-orange-600/60 px-3 py-2 text-sm font-medium text-orange-400 transition-colors hover:bg-orange-600/10 disabled:opacity-50"
-                title="Speichert den Overlap nur für diese Stunde, betrifft keine andere Sendung"
+                title="Saves the overlap only for this hour, doesn't affect any other broadcast"
               >
-                <CircleDot size={14} /> {savingScope === "hour" ? "Speichert…" : "Für diese Stunde"}
+                <CircleDot size={14} /> {savingScope === "hour" ? "Saving…" : "For this hour"}
               </button>
             )}
           </div>
@@ -1073,19 +1073,19 @@ export default function MixEditor({ context, onBack, onNavigate }) {
         {bufferError && (
           <div className="flex items-center gap-2 border-b border-zinc-800 bg-red-500/5 px-6 py-2.5 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Audio konnte nicht geladen werden: {bufferError}</span>
+            <span>Audio could not be loaded: {bufferError}</span>
           </div>
         )}
         {saveError && (
           <div className="flex items-center gap-2 border-b border-zinc-800 bg-red-500/5 px-6 py-2.5 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Speichern fehlgeschlagen: {saveError}</span>
+            <span>Save failed: {saveError}</span>
           </div>
         )}
         {saveOk && !saveError && (
           <div className="flex items-center gap-2 border-b border-zinc-800 bg-green-500/5 px-6 py-2.5 text-sm text-green-500">
             <Save size={14} />
-            <span>Übergänge für diese Stunde gespeichert.</span>
+            <span>Transitions saved for this hour.</span>
           </div>
         )}
 
@@ -1183,8 +1183,8 @@ export default function MixEditor({ context, onBack, onNavigate }) {
 
         {/* Legend / hint */}
         <div className="border-t border-zinc-800 px-6 py-2 text-xs text-zinc-600">
-          Orange Fläche = Overlap zwischen zwei Spuren. Spur oder Cue-Marker ziehen, um den Übergang zu ändern.{" "}
-          <Focus size={11} className="inline -translate-y-0.5" /> spielt nur den Übergang (±{FOCUS_WINDOW}s) ab.
+          Orange area = overlap between two tracks. Drag a track or cue marker to change the transition.{" "}
+          <Focus size={11} className="inline -translate-y-0.5" /> plays only the transition (±{FOCUS_WINDOW}s).
         </div>
       </main>
     </div>

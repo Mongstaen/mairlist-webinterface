@@ -1,5 +1,5 @@
-// Panel-eigene Einstellungen (nicht mAirList-Konfiguration), persistiert als
-// server/settings.json. Datei wird mit Defaults angelegt falls nicht vorhanden.
+// Panel's own settings (not mAirList configuration), persisted as
+// server/settings.json. The file is created with defaults if not present.
 
 const fs = require("fs");
 const path = require("path");
@@ -7,7 +7,7 @@ const path = require("path");
 const SETTINGS_PATH = path.join(__dirname, "..", "settings.json");
 
 const DEFAULT_SETTINGS = {
-  stationName: "Mein Radio",
+  stationName: "My Radio",
   dateFormat: "DD.MM.YYYY",
   timeFormat: "HH:mm:ss",
   defaultDate: "today",

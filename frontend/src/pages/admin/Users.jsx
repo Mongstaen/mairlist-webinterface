@@ -54,7 +54,7 @@ function NewUserDialog({ onClose, onCreate }) {
   };
 
   return (
-    <Modal title="Neuer Benutzer" onClose={onClose}>
+    <Modal title="New user" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <label className="block">
           <span className="mb-1.5 block text-xs text-zinc-400">Name</span>
@@ -63,7 +63,7 @@ function NewUserDialog({ onClose, onCreate }) {
             value={name}
             autoFocus
             onChange={(e) => setName(e.target.value)}
-            placeholder="Benutzername"
+            placeholder="Username"
           />
         </label>
         <label className="block">
@@ -76,17 +76,17 @@ function NewUserDialog({ onClose, onCreate }) {
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs text-zinc-400">Passwort</span>
+          <span className="mb-1.5 block text-xs text-zinc-400">Password</span>
           <input
             type="password"
             className={inputClass}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Passwort"
+            placeholder="Password"
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs text-zinc-400">Rolle</span>
+          <span className="mb-1.5 block text-xs text-zinc-400">Role</span>
           <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value)}>
             {ROLES.map((r) => (
               <option key={r.value} value={r.value}>{r.label}</option>
@@ -97,7 +97,7 @@ function NewUserDialog({ onClose, onCreate }) {
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Benutzer konnte nicht angelegt werden: {error}</span>
+            <span>User could not be created: {error}</span>
           </div>
         )}
 
@@ -114,7 +114,7 @@ function NewUserDialog({ onClose, onCreate }) {
             disabled={saving || !name.trim() || !password}
             className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500 disabled:opacity-50"
           >
-            {saving ? "Wird angelegt…" : "Anlegen"}
+            {saving ? "Creating…" : "Create"}
           </button>
         </div>
       </form>
@@ -138,15 +138,15 @@ function DeleteUserDialog({ user, onClose, onConfirm }) {
   };
 
   return (
-    <Modal title="Benutzer löschen" onClose={onClose}>
+    <Modal title="Delete user" onClose={onClose}>
       <p className="text-sm text-zinc-300">
-        Soll der Benutzer <span className="font-medium text-zinc-100">{user.name}</span> wirklich gelöscht werden?
+        Really delete the user <span className="font-medium text-zinc-100">{user.name}</span>?
       </p>
 
       {error && (
         <div className="mt-3 flex items-center gap-2 text-sm text-red-500">
           <AlertTriangle size={14} />
-          <span>Löschen fehlgeschlagen: {error}</span>
+          <span>Delete failed: {error}</span>
         </div>
       )}
 
@@ -162,7 +162,7 @@ function DeleteUserDialog({ user, onClose, onConfirm }) {
           disabled={deleting}
           className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-50"
         >
-          {deleting ? "Wird gelöscht…" : "Löschen"}
+          {deleting ? "Deleting…" : "Delete"}
         </button>
       </div>
     </Modal>
@@ -171,8 +171,8 @@ function DeleteUserDialog({ user, onClose, onConfirm }) {
 
 const ROLES = [
   { value: "readonly", label: "Read-only — nur lesen" },
-  { value: "studio", label: "Studio — Playlists bearbeiten" },
-  { value: "dj", label: "DJ — Items + Playlists bearbeiten" },
+  { value: "studio", label: "Studio — edit playlists" },
+  { value: "dj", label: "DJ — edit items + playlists" },
   { value: "vtdj", label: "VTDJ — wie DJ + Voice Tracking" },
   { value: "admin", label: "Admin — alles inkl. Benutzerverwaltung" },
 ];
@@ -216,7 +216,7 @@ function TokensSection({ userId }) {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      // Clipboard-Zugriff kann vom Browser verweigert werden; still ignorieren
+      // Clipboard access can be denied by the browser; ignore silently
     }
   };
 
@@ -264,7 +264,7 @@ function TokensSection({ userId }) {
           <div className="mb-4 rounded-md border border-orange-500/40 bg-orange-500/10 px-4 py-3">
             <div className="mb-1.5 flex items-center gap-2 text-xs text-orange-400">
               <AlertTriangle size={13} />
-              <span>Token wird nur einmal angezeigt</span>
+              <span>Token is shown only once</span>
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 truncate rounded bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-100">
@@ -288,10 +288,10 @@ function TokensSection({ userId }) {
           </div>
         )}
 
-        {loading && <div className="text-sm text-zinc-500">Lädt…</div>}
+        {loading && <div className="text-sm text-zinc-500">Loading…</div>}
 
         {!loading && tokens.length === 0 && (
-          <div className="text-sm text-zinc-600">Keine Tokens vorhanden</div>
+          <div className="text-sm text-zinc-600">No tokens present</div>
         )}
 
         {!loading && tokens.length > 0 && (
@@ -308,7 +308,7 @@ function TokensSection({ userId }) {
                       {t.token.slice(0, 8)}…
                     </div>
                     <div className="truncate text-xs text-zinc-500">
-                      Erstellt {formatDateTime(t.created)} · Läuft ab {formatDateTime(t.expires)}
+                      Created {formatDateTime(t.created)} · Expires {formatDateTime(t.expires)}
                     </div>
                   </div>
                 </div>
@@ -325,7 +325,7 @@ function TokensSection({ userId }) {
                     className="flex items-center gap-1.5 rounded-md bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-500"
                   >
                     <Trash2 size={13} />
-                    <span>Token löschen</span>
+                    <span>Delete token</span>
                   </button>
                 </div>
               </div>
@@ -363,7 +363,7 @@ function UserDetail({ user, currentUserId, onSaved, onDeleted }) {
 
   const save = async () => {
     if (newPassword && newPassword !== confirmPassword) {
-      setError("Die Passwörter stimmen nicht überein");
+      setError("The passwords do not match");
       return;
     }
     setSaving(true);
@@ -403,20 +403,20 @@ function UserDetail({ user, currentUserId, onSaved, onDeleted }) {
       </div>
 
       <div className="rounded-lg border border-zinc-800 bg-zinc-900">
-        <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-100">Passwort ändern</div>
+        <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-100">Change password</div>
         <div className="grid grid-cols-2 gap-4 px-5 py-5">
           <label className="block">
-            <span className="mb-1.5 block text-sm text-zinc-400">Neues Passwort</span>
+            <span className="mb-1.5 block text-sm text-zinc-400">New password</span>
             <input
               type="password"
               className={inputClass}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Leer lassen für keine Änderung"
+              placeholder="Leave empty for no change"
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm text-zinc-400">Bestätigen</span>
+            <span className="mb-1.5 block text-sm text-zinc-400">Confirm</span>
             <input
               type="password"
               className={inputClass}
@@ -428,10 +428,10 @@ function UserDetail({ user, currentUserId, onSaved, onDeleted }) {
       </div>
 
       <div className="rounded-lg border border-zinc-800 bg-zinc-900">
-        <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-100">Rolle</div>
+        <div className="border-b border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-100">Role</div>
         <div className="px-5 py-5">
           <label className="block">
-            <span className="mb-1.5 block text-sm text-zinc-400">Rolle</span>
+            <span className="mb-1.5 block text-sm text-zinc-400">Role</span>
             <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value)}>
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
@@ -461,11 +461,11 @@ function UserDetail({ user, currentUserId, onSaved, onDeleted }) {
         <button
           onClick={() => setShowDelete(true)}
           disabled={isOwnAccount}
-          title={isOwnAccount ? "Der eigene Account kann nicht gelöscht werden" : undefined}
+          title={isOwnAccount ? "You cannot delete your own account" : undefined}
           className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Trash2 size={16} />
-          <span>Löschen</span>
+          <span>Delete</span>
         </button>
         <button
           onClick={save}
@@ -473,7 +473,7 @@ function UserDetail({ user, currentUserId, onSaved, onDeleted }) {
           className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-500 disabled:opacity-50"
         >
           <Save size={16} />
-          <span>{saving ? "Wird gespeichert…" : "Speichern"}</span>
+          <span>{saving ? "Saving…" : "Save"}</span>
         </button>
       </div>
 
@@ -553,7 +553,7 @@ export default function Users({ onNavigate }) {
 
       <div className="flex w-72 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900">
         <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3.5">
-          <h2 className="text-sm font-semibold text-zinc-100">Benutzer</h2>
+          <h2 className="text-sm font-semibold text-zinc-100">Users</h2>
           <button
             onClick={() => setShowNew(true)}
             className="flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-500"
@@ -564,7 +564,7 @@ export default function Users({ onNavigate }) {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {loading && <div className="px-4 py-4 text-sm text-zinc-500">Lädt…</div>}
+          {loading && <div className="px-4 py-4 text-sm text-zinc-500">Loading…</div>}
           {error && !loading && (
             <div className="flex items-center gap-2 px-4 py-4 text-sm text-red-500">
               <AlertTriangle size={14} />
@@ -572,7 +572,7 @@ export default function Users({ onNavigate }) {
             </div>
           )}
           {!loading && !error && users.length === 0 && (
-            <div className="px-4 py-4 text-sm text-zinc-600">Keine Benutzer vorhanden</div>
+            <div className="px-4 py-4 text-sm text-zinc-600">No users present</div>
           )}
           {!loading && users.map((u) => (
             <button
@@ -600,7 +600,7 @@ export default function Users({ onNavigate }) {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
               <UsersIcon size={18} className="text-zinc-950" />
             </div>
-            <h1 className="text-lg font-semibold">Benutzer-Verwaltung</h1>
+            <h1 className="text-lg font-semibold">User Management</h1>
           </div>
         </header>
 
@@ -615,7 +615,7 @@ export default function Users({ onNavigate }) {
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-zinc-600">
-              Benutzer auswählen oder neu anlegen
+              Select a user or create a new one
             </div>
           )}
         </div>

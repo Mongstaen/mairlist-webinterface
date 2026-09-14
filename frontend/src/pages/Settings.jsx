@@ -29,7 +29,7 @@ function Card({ title, children }) {
 }
 
 const DEFAULT_SETTINGS = {
-  stationName: "Mein Radio",
+  stationName: "My Radio",
   dateFormat: "DD.MM.YYYY",
   timeFormat: "HH:mm:ss",
   defaultDate: "today",
@@ -70,8 +70,8 @@ export default function Settings({ onNavigate }) {
       const result = await getListeners();
       setListenerTest(
         result.available
-          ? { ok: true, message: `Aktuell ${result.count} Hörer` }
-          : { ok: false, message: result.error || "Keine Hörerzahl verfügbar" }
+          ? { ok: true, message: `Currently ${result.count} listeners` }
+          : { ok: false, message: result.error || "No listener count available" }
       );
     } catch (e) {
       setListenerTest({ ok: false, message: e.message });
@@ -105,7 +105,7 @@ export default function Settings({ onNavigate }) {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
               <SettingsIcon size={18} className="text-zinc-950" />
             </div>
-            <h1 className="text-lg font-semibold">Einstellungen</h1>
+            <h1 className="text-lg font-semibold">Settings</h1>
           </div>
         </header>
 
@@ -124,7 +124,7 @@ export default function Settings({ onNavigate }) {
 
         <div className="flex-1 overflow-auto px-6 py-6">
           {loading ? (
-            <div className="mx-auto max-w-3xl text-sm text-zinc-500">Lädt…</div>
+            <div className="mx-auto max-w-3xl text-sm text-zinc-500">Loading…</div>
           ) : (
             <div className="mx-auto max-w-3xl space-y-6">
               <Card title="Allgemein">
@@ -163,7 +163,7 @@ export default function Settings({ onNavigate }) {
 
               <Card title="Anzeige">
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Einträge pro Seite">
+                  <Field label="Entries per page">
                     <input
                       type="number"
                       min={10}
@@ -219,7 +219,7 @@ export default function Settings({ onNavigate }) {
                 </Field>
               </Card>
 
-              <Card title="Hörerzahlen">
+              <Card title="Listener counts">
                 <Field label="Quelle">
                   <select
                     value={settings.listenerSource}
@@ -257,7 +257,7 @@ export default function Settings({ onNavigate }) {
                     </Field>
                     <Field
                       label="JSON-Pfad"
-                      hint="Die URL muss ein JSON liefern, das eine Zahl enthält. Gib den Pfad zu dieser Zahl an, z. B. 'listeners' oder 'data.count'."
+                      hint="The URL must return JSON containing a number. Specify the path to that number, e.g. 'listeners' or 'data.count'."
                     >
                       <input
                         type="text"

@@ -33,8 +33,8 @@ function applyOverrides(globalItem, overrides) {
 
 // Diffs `edited` against `globalItem` for just the overridable keys and
 // returns only the sub-keys that actually changed (e.g. only the cue points
-// the user touched, not the whole cue object) — so saving "für diese
-// Stunde" never freezes in fields the user never looked at.
+// the user touched, not the whole cue object) — so saving "for this
+// hour" never freezes in fields the user never looked at.
 function diffOverrides(globalItem, edited) {
   const overrides = {};
   for (const key of OVERRIDABLE_KEYS) {
@@ -236,7 +236,7 @@ function CueCard({ point, value, duration, onChange, onSetMarker, onJump, onClea
         <button
           onClick={() => onClear(point.key)}
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-zinc-500 hover:bg-zinc-800 hover:text-red-400"
-          title="Löschen"
+          title="Delete"
         >
           <Trash2 size={13} />
         </button>
@@ -256,7 +256,7 @@ function GeneralTab({ item, update, itemTypes }) {
         <Field label="Title">
           <input className={inputClass} value={item.title} onChange={(e) => update("title", e.target.value)} />
         </Field>
-        <Field label="Interpret">
+        <Field label="Artist">
           <input className={inputClass} value={item.artist} onChange={(e) => update("artist", e.target.value)} />
         </Field>
 
@@ -269,7 +269,7 @@ function GeneralTab({ item, update, itemTypes }) {
               )}
             </select>
           </Field>
-          <Field label="Länge">
+          <Field label="Length">
             <input className={inputClass} value={item.duration} onChange={(e) => update("duration", e.target.value)} />
           </Field>
           <Field label="Ende">
@@ -278,7 +278,7 @@ function GeneralTab({ item, update, itemTypes }) {
         </div>
 
         {isContainer && (
-          <Field label="Container Typ">
+          <Field label="Container Type">
             <select className={inputClass} value={item.containerType} onChange={(e) => update("containerType", e.target.value)}>
               {CONTAINER_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
             </select>
@@ -307,7 +307,7 @@ function GeneralTab({ item, update, itemTypes }) {
             <Palette size={22} className="text-zinc-700" />
           </div>
           <div className="mt-2 space-y-2">
-            <button className="w-full rounded-md border border-zinc-800 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">Auswählen</button>
+            <button className="w-full rounded-md border border-zinc-800 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">Select</button>
             <button className="w-full rounded-md border border-zinc-800 py-1.5 text-xs text-zinc-500 hover:bg-zinc-800">Leeren</button>
           </div>
         </div>
@@ -317,7 +317,7 @@ function GeneralTab({ item, update, itemTypes }) {
             <ImageIcon size={22} className="text-amber-200/70" />
           </div>
           <div className="mt-2 space-y-2">
-            <button className="w-full rounded-md border border-zinc-800 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">Auswählen</button>
+            <button className="w-full rounded-md border border-zinc-800 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800">Select</button>
             <button className="w-full rounded-md border border-zinc-800 py-1.5 text-xs text-zinc-500 hover:bg-zinc-800">Leeren</button>
           </div>
         </div>
@@ -642,14 +642,14 @@ function CueEditorTab({ item, updateCue }) {
                   dragBelowKey === point.key ? "opacity-30" : ""
                 }`}
                 style={{ left: `${pct}%`, width: 12, marginLeft: -6 }}
-                title={`${point.label} verschieben — nach unten ziehen zum Löschen`}
+                title={`Move ${point.label} — drag down to delete`}
               >
                 <div className="h-full w-px" style={{ backgroundColor: point.color }} />
                 <div
                   className="pointer-events-none absolute -left-1 whitespace-nowrap rounded-sm px-1 text-[9px] font-medium leading-tight"
                   style={{ top: `${row * 13}px`, color: point.color, backgroundColor: "rgba(9, 9, 11, 0.85)" }}
                 >
-                  {dragBelowKey === point.key ? "Löschen" : point.label}
+                  {dragBelowKey === point.key ? "Delete" : point.label}
                 </div>
               </div>
             ))}
@@ -730,7 +730,7 @@ function CueEditorTab({ item, updateCue }) {
         )}
         {audioState === "unavailable" && (
           <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-600">
-            <AlertTriangle size={12} /> Audio nicht verfügbar — synthetische Wellenform als Platzhalter
+            <AlertTriangle size={12} /> Audio unavailable — synthetic waveform as placeholder
           </div>
         )}
 
@@ -764,14 +764,14 @@ function CueEditorTab({ item, updateCue }) {
             <button
               onClick={zoomIn} disabled={zoomLevel >= MAX_ZOOM}
               className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 disabled:opacity-40 disabled:hover:bg-transparent"
-              title="Vergrößern"
+              title="Zoom in"
             >
               <ZoomIn size={15} />
             </button>
             <button
               onClick={() => applyZoom(1)}
               className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800"
-              title="Zoom zurücksetzen"
+              title="Reset zoom"
             >
               <RefreshCw size={15} />
             </button>
@@ -918,7 +918,7 @@ function AttributesTab({ item, setItem }) {
     return (
       <div className="flex items-center gap-2 text-sm text-red-500">
         <AlertTriangle size={14} />
-        <span>Attribut-Definitionen konnten nicht geladen werden: {error}</span>
+        <span>Attribute definitions could not be loaded: {error}</span>
       </div>
     );
   }
@@ -962,9 +962,9 @@ function PlaybackTab({ item, update }) {
 
   return (
     <div className="max-w-2xl space-y-6">
-      {/* Lautstärke und Gain */}
+      {/* Volume and gain */}
       <div className="space-y-4">
-        <div className="text-[11px] uppercase tracking-wide text-zinc-600">Lautstärke und Gain</div>
+        <div className="text-[11px] uppercase tracking-wide text-zinc-600">Volume and Gain</div>
 
         <Field label="Gain (dB)">
           <div className="flex items-center gap-3">
@@ -1015,7 +1015,7 @@ function PlaybackTab({ item, update }) {
         </Field>
 
         <p className="text-xs text-zinc-600">
-          Fade In/Out und Loop werden über den Cue-Editor gesteuert.
+          Fade in/out and loop are controlled via the cue editor.
         </p>
       </div>
     </div>
@@ -1031,7 +1031,7 @@ function HistoryStatTile({ value, label }) {
   );
 }
 
-const HEATMAP_MONTH_LABELS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+const HEATMAP_MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // Fixed absolute steps rather than normalizing against the day's max: for
 // items that play at most once or twice a day (the common case), a
@@ -1103,7 +1103,7 @@ function HistoryHourChart({ hourDistribution }) {
   return (
     <div className="flex h-24 items-end gap-[3px]">
       {hourDistribution.map(({ hour, count }) => (
-        <div key={hour} className="flex flex-1 flex-col items-center gap-1" title={`${hour}:00 Uhr: ${count}x`}>
+        <div key={hour} className="flex flex-1 flex-col items-center gap-1" title={`${hour}:00: ${count}x`}>
           <div
             className="w-full rounded-sm bg-orange-500"
             style={{ height: `${Math.max(2, (count / max) * 80)}px` }}
@@ -1148,7 +1148,7 @@ function HistoryTab({ itemId }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center text-sm text-zinc-600">
-        Lade Verlauf…
+        Loading history…
       </div>
     );
   }
@@ -1157,7 +1157,7 @@ function HistoryTab({ itemId }) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-20 text-center text-red-500">
         <AlertTriangle size={20} />
-        <span className="text-sm">Verlauf konnte nicht geladen werden: {error}</span>
+        <span className="text-sm">History could not be loaded: {error}</span>
       </div>
     );
   }
@@ -1165,7 +1165,7 @@ function HistoryTab({ itemId }) {
   if (history.length === 0 || !stats) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center text-sm text-zinc-600">
-        Dieses Element wurde noch nicht gespielt.
+        This element has not been played yet.
       </div>
     );
   }
@@ -1186,7 +1186,7 @@ function HistoryTab({ itemId }) {
       </div>
 
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-        <div className="mb-3 text-sm font-semibold text-zinc-100">Verlauf im Zeitverlauf</div>
+        <div className="mb-3 text-sm font-semibold text-zinc-100">History over time</div>
         <HistoryHeatmap weeks={stats.weeks} />
       </div>
 
@@ -1216,7 +1216,7 @@ function HistoryTab({ itemId }) {
             onClick={() => setShowAll((v) => !v)}
             className="w-full border-t border-zinc-800 px-4 py-2 text-center text-xs text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
           >
-            {showAll ? "Weniger anzeigen" : `Alle ${sortedDesc.length} Einträge anzeigen`}
+            {showAll ? "Show less" : `Show all ${sortedDesc.length} entries`}
           </button>
         )}
       </div>
@@ -1237,12 +1237,12 @@ function PlaceholderTab({ icon: Icon, title, note }) {
 // --- Main ---
 
 const TABS = [
-  { key: "general", label: "Allgemein", icon: LayoutList },
-  { key: "playback", label: "Wiedergabe", icon: Play },
+  { key: "general", label: "General", icon: LayoutList },
+  { key: "playback", label: "Playback", icon: Play },
   { key: "attributes", label: "Attribute", icon: SlidersHorizontal },
-  { key: "scheduling", label: "Sendeplanung", icon: Clock },
-  { key: "history", label: "Verlauf", icon: History },
-  { key: "cue", label: "Cue-Editor", icon: Pencil },
+  { key: "scheduling", label: "Scheduling", icon: Clock },
+  { key: "history", label: "History", icon: History },
+  { key: "cue", label: "Cue Editor", icon: Pencil },
 ];
 
 export default function ItemEditor({ internalId, playlistContext, onBack, onNavigate }) {
@@ -1319,8 +1319,8 @@ export default function ItemEditor({ internalId, playlistContext, onBack, onNavi
     return out;
   };
 
-  // "In Datenbank speichern": writes the edited item globally, exactly as
-  // before. Available from both the Elemente list and the playlist (where
+  // "Save to database": writes the edited item globally, exactly as
+  // before. Available from both the elements list and the playlist (where
   // it intentionally propagates the change to every hour that plays this
   // item, unlike the hour-scoped save below). Whatever was displayed is now
   // the database value, so any local-only overrides this slot had are gone
@@ -1343,7 +1343,7 @@ export default function ItemEditor({ internalId, playlistContext, onBack, onNavi
     }
   };
 
-  // "Für diese Stunde speichern": diffs the edited (cue/attributes only)
+  // "Save for this hour": diffs the edited (cue/attributes only)
   // fields against the untouched global item and writes just that diff as
   // this playlist entry's `overrides` — a "volatile" change, per mAirList,
   // that never touches the database and has no effect on any other hour.
@@ -1390,7 +1390,7 @@ export default function ItemEditor({ internalId, playlistContext, onBack, onNavi
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
               <Database size={18} className="text-zinc-950" />
             </div>
-            <h1 className="text-lg font-semibold">Item-Verwaltung</h1>
+            <h1 className="text-lg font-semibold">Item Management</h1>
           </div>
           <button className="flex h-9 w-9 items-center justify-center rounded-md border border-green-700/60 text-green-500 hover:bg-green-600/10">
             <RefreshCw size={16} />
@@ -1400,7 +1400,7 @@ export default function ItemEditor({ internalId, playlistContext, onBack, onNavi
         {/* Sub toolbar: back + title + save */}
         <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-3">
           <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200">
-            <ChevronLeft size={16} /> {playlistContext ? "Zurück zur Playlist" : "Zurück zur Liste"}
+            <ChevronLeft size={16} /> {playlistContext ? "Back to playlist" : "Back to list"}
           </button>
           <div className="flex items-center gap-2 truncate px-4 text-sm text-zinc-500">
             {item && (
@@ -1409,9 +1409,9 @@ export default function ItemEditor({ internalId, playlistContext, onBack, onNavi
             {hasOverrides && (
               <span
                 className="flex items-center gap-1 rounded border border-orange-600/40 bg-orange-500/10 px-1.5 py-0.5 text-[11px] font-medium text-orange-400"
-                title="Diese Ansicht zeigt lokale Änderungen für diese Stunde, nicht den Datenbank-Stand"
+                title="This view shows local changes for this hour, not the database state"
               >
-                <CircleDot size={9} /> Lokal geändert
+                <CircleDot size={9} /> Locally changed
               </span>
             )}
           </div>
@@ -1420,17 +1420,17 @@ export default function ItemEditor({ internalId, playlistContext, onBack, onNavi
               <button
                 onClick={handleSaveToHour} disabled={!item || saving}
                 className="flex items-center gap-2 rounded-md border border-orange-600/60 px-3 py-2 text-sm font-medium text-orange-400 hover:bg-orange-600/10 disabled:opacity-50"
-                title="Speichert Cue-Punkte und Attribute nur für diesen Playlist-Eintrag, betrifft keine andere Stunde"
+                title="Saves cue points and attributes only for this playlist entry, doesn't affect any other hour"
               >
-                <CircleDot size={15} /> {savingScope === "hour" ? "Speichert…" : "Für diese Stunde speichern"}
+                <CircleDot size={15} /> {savingScope === "hour" ? "Saving…" : "Save for this hour"}
               </button>
             )}
             <button
               onClick={handleSaveToDatabase} disabled={!item || saving}
               className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50"
-              title={playlistContext ? "Schreibt die Änderung global in die Datenbank, betrifft alle Stunden mit diesem Element" : undefined}
+              title={playlistContext ? "Writes the change globally to the database, affects all hours with this element" : undefined}
             >
-              <DatabaseIcon size={15} /> {savingScope === "database" ? "Speichert…" : "In Datenbank speichern"}
+              <DatabaseIcon size={15} /> {savingScope === "database" ? "Saving…" : "Save to database"}
             </button>
           </div>
         </div>
@@ -1438,20 +1438,20 @@ export default function ItemEditor({ internalId, playlistContext, onBack, onNavi
         {saveError && (
           <div className="flex items-center gap-2 border-b border-zinc-800 bg-red-500/5 px-6 py-2.5 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Element konnte nicht gespeichert werden: {saveError}</span>
+            <span>Element could not be saved: {saveError}</span>
           </div>
         )}
 
         <div className="flex-1 overflow-auto p-6">
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 text-center text-sm text-zinc-600">
-              Lade Element…
+              Loading element…
             </div>
           )}
           {!loading && error && (
             <div className="flex flex-col items-center justify-center gap-2 py-20 text-center text-red-500">
               <AlertTriangle size={20} />
-              <span className="text-sm">Element konnte nicht geladen werden: {error}</span>
+              <span className="text-sm">Element could not be loaded: {error}</span>
             </div>
           )}
           {!loading && !error && item && (
@@ -1459,7 +1459,7 @@ export default function ItemEditor({ internalId, playlistContext, onBack, onNavi
               {tab === "general" && <GeneralTab item={item} update={update} itemTypes={itemTypes} />}
               {tab === "playback" && <PlaybackTab item={item} update={update} />}
               {tab === "attributes" && <AttributesTab item={item} setItem={setItem} />}
-              {tab === "scheduling" && <PlaceholderTab icon={Clock} title="Sendeplanung" note="Rotationen, Zeitfenster und Scheduling Regeln. Kommt in einer späteren Phase." />}
+              {tab === "scheduling" && <PlaceholderTab icon={Clock} title="Scheduling" note="Rotations, time windows, and scheduling rules. Coming in a later phase." />}
               {tab === "history" && <HistoryTab itemId={item.id} />}
               {tab === "cue" && <CueEditorTab item={item} updateCue={updateCue} />}
             </>

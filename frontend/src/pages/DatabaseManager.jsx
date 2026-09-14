@@ -146,12 +146,12 @@ function StorageContextMenu({ x, y, onClose, onRename, onDelete }) {
     >
       <button className={itemClass} onClick={onRename}>
         <Pencil size={13} />
-        <span>Umbenennen</span>
+        <span>Rename</span>
       </button>
       <div className="my-1 border-t border-zinc-800" />
       <button className={`${itemClass} text-red-500 hover:text-red-400`} onClick={onDelete}>
         <Trash2 size={13} />
-        <span>Löschen</span>
+        <span>Delete</span>
       </button>
     </div>
   );
@@ -186,20 +186,20 @@ function FolderContextMenu({ x, y, onClose, onNewSubfolder, onRename, onMove, on
     >
       <button className={itemClass} onClick={onNewSubfolder}>
         <FolderPlus size={13} />
-        <span>Neuer Unterordner</span>
+        <span>New subfolder</span>
       </button>
       <button className={itemClass} onClick={onRename}>
         <Pencil size={13} />
-        <span>Umbenennen</span>
+        <span>Rename</span>
       </button>
       <button className={itemClass} onClick={onMove}>
         <FolderInput size={13} />
-        <span>Verschieben</span>
+        <span>Move</span>
       </button>
       <div className="my-1 border-t border-zinc-800" />
       <button className={`${itemClass} text-red-500 hover:text-red-400`} onClick={onDelete}>
         <Trash2 size={13} />
-        <span>Löschen</span>
+        <span>Delete</span>
       </button>
     </div>
   );
@@ -370,22 +370,22 @@ function NewItemDialog({ onClose, onCreate }) {
   };
 
   return (
-    <Modal title="Neues Element" onClose={onClose}>
+    <Modal title="New Element" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <label className="block">
           <span className="mb-1.5 block text-xs text-zinc-400">Title</span>
           <input
             className={inputClass} value={title} autoFocus
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Titel des Elements"
+            placeholder="Title of the element"
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs text-zinc-400">Interpret</span>
+          <span className="mb-1.5 block text-xs text-zinc-400">Artist</span>
           <input
             className={inputClass} value={artist}
             onChange={(e) => setArtist(e.target.value)}
-            placeholder="Interpret"
+            placeholder="Artist"
           />
         </label>
         <label className="block">
@@ -398,7 +398,7 @@ function NewItemDialog({ onClose, onCreate }) {
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Element konnte nicht angelegt werden: {error}</span>
+            <span>Element could not be created: {error}</span>
           </div>
         )}
 
@@ -410,7 +410,7 @@ function NewItemDialog({ onClose, onCreate }) {
             type="submit" disabled={!title.trim() || saving}
             className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500 disabled:opacity-50"
           >
-            {saving ? "Wird angelegt…" : "Anlegen"}
+            {saving ? "Creating…" : "Create"}
           </button>
         </div>
       </form>
@@ -441,7 +441,7 @@ function UploadDialog({ storages, onClose, onUpload }) {
   };
 
   return (
-    <Modal title="Datei hochladen" onClose={onClose}>
+    <Modal title="Upload file" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <label className="block">
           <span className="mb-1.5 block text-xs text-zinc-400">Storage</span>
@@ -460,18 +460,18 @@ function UploadDialog({ storages, onClose, onUpload }) {
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs text-zinc-400">Titel (optional)</span>
+          <span className="mb-1.5 block text-xs text-zinc-400">Title (optional)</span>
           <input
             className={inputClass} value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Standard: Dateiname ohne Endung"
+            placeholder="Default: filename without extension"
           />
         </label>
 
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Upload fehlgeschlagen: {error}</span>
+            <span>Upload failed: {error}</span>
           </div>
         )}
 
@@ -483,7 +483,7 @@ function UploadDialog({ storages, onClose, onUpload }) {
             type="submit" disabled={!file || !storageId || uploading}
             className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500 disabled:opacity-50"
           >
-            {uploading ? "Lädt hoch…" : "Hochladen"}
+            {uploading ? "Uploading…" : "Upload"}
           </button>
         </div>
       </form>
@@ -507,16 +507,16 @@ function ConfirmDeleteDialog({ item, onClose, onConfirm }) {
   };
 
   return (
-    <Modal title="Element löschen" onClose={onClose}>
+    <Modal title="Delete element" onClose={onClose}>
       <div className="space-y-4">
         <p className="text-sm text-zinc-300">
-          „{item.title}“{item.artist ? `  ·  ${item.artist}` : ""} (ID {item.internalId}) wird endgültig gelöscht.
+          "{item.title}"{item.artist ? `  ·  ${item.artist}` : ""} (ID {item.internalId}) will be permanently deleted.
         </p>
 
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Element konnte nicht gelöscht werden: {error}</span>
+            <span>Element could not be deleted: {error}</span>
           </div>
         )}
 
@@ -528,7 +528,7 @@ function ConfirmDeleteDialog({ item, onClose, onConfirm }) {
             onClick={confirm} disabled={deleting}
             className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-50"
           >
-            {deleting ? "Wird gelöscht…" : "Löschen"}
+            {deleting ? "Deleting…" : "Delete"}
           </button>
         </div>
       </div>
@@ -592,7 +592,7 @@ function MoveFolderDialog({ tree, folder, onClose, onMove }) {
   const unchanged = selectedId === (folder.parentId ?? null);
 
   return (
-    <Modal title={`„${folder.name}“ verschieben`} onClose={onClose}>
+    <Modal title={`Move "${folder.name}"`} onClose={onClose}>
       <div className="space-y-4">
         <div className="max-h-72 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950 p-2">
           <button
@@ -619,7 +619,7 @@ function MoveFolderDialog({ tree, folder, onClose, onMove }) {
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Ordner konnte nicht verschoben werden: {error}</span>
+            <span>Folder could not be moved: {error}</span>
           </div>
         )}
 
@@ -631,7 +631,7 @@ function MoveFolderDialog({ tree, folder, onClose, onMove }) {
             onClick={confirm} disabled={moving || unchanged}
             className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500 disabled:opacity-50"
           >
-            {moving ? "Wird verschoben…" : "Verschieben"}
+            {moving ? "Moving…" : "Move"}
           </button>
         </div>
       </div>
@@ -657,23 +657,23 @@ function ConfirmDeleteFolderDialog({ folder, onClose, onConfirm }) {
   };
 
   return (
-    <Modal title="Ordner löschen" onClose={onClose}>
+    <Modal title="Delete folder" onClose={onClose}>
       <div className="space-y-4">
         {isEmpty ? (
           <p className="text-sm text-zinc-300">
-            Ordner „{folder.name}“ wird endgültig gelöscht.
+            Folder "{folder.name}" will be permanently deleted.
           </p>
         ) : (
           <div className="flex items-center gap-2 text-sm text-orange-500">
             <AlertTriangle size={14} />
-            <span>Ordner enthält noch Elemente oder Unterordner</span>
+            <span>Folder still contains elements or subfolders</span>
           </div>
         )}
 
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Ordner konnte nicht gelöscht werden: {error}</span>
+            <span>Folder could not be deleted: {error}</span>
           </div>
         )}
 
@@ -685,7 +685,7 @@ function ConfirmDeleteFolderDialog({ folder, onClose, onConfirm }) {
             onClick={confirm} disabled={deleting || !isEmpty}
             className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-50"
           >
-            {deleting ? "Wird gelöscht…" : "Löschen"}
+            {deleting ? "Deleting…" : "Delete"}
           </button>
         </div>
       </div>
@@ -714,14 +714,14 @@ function NewStorageDialog({ onClose, onCreate }) {
   };
 
   return (
-    <Modal title="Neuer Storage" onClose={onClose}>
+    <Modal title="New storage" onClose={onClose}>
       <div className="space-y-4">
         <label className="block">
           <span className="mb-1.5 block text-xs text-zinc-400">Name</span>
           <input
             className={inputClass} value={name} autoFocus
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name des Storage"
+            placeholder="Storage name"
           />
         </label>
         <label className="block">
@@ -729,14 +729,14 @@ function NewStorageDialog({ onClose, onCreate }) {
           <input
             className={inputClass} value={path}
             onChange={(e) => setPath(e.target.value)}
-            placeholder="z. B. D:\Audios oder \\Server\Freigabe"
+            placeholder="e.g. D:\Audios or \\Server\Share"
           />
         </label>
 
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-500">
             <AlertTriangle size={14} />
-            <span>Storage konnte nicht angelegt werden: {error}</span>
+            <span>Storage could not be created: {error}</span>
           </div>
         )}
 
@@ -748,7 +748,7 @@ function NewStorageDialog({ onClose, onCreate }) {
             type="button" onClick={submit} disabled={!name.trim() || saving}
             className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500 disabled:opacity-50"
           >
-            {saving ? "Wird angelegt…" : "Speichern"}
+            {saving ? "Creating…" : "Save"}
           </button>
         </div>
       </div>
@@ -772,10 +772,10 @@ function ConfirmDeleteStorageDialog({ storage, onClose, onConfirm }) {
   };
 
   return (
-    <Modal title="Storage löschen" onClose={onClose}>
+    <Modal title="Delete storage" onClose={onClose}>
       <div className="space-y-4">
         <p className="text-sm text-zinc-300">
-          Storage „{storage.name}“ wirklich löschen?
+          Really delete storage "{storage.name}"?
         </p>
 
         {error && (
@@ -793,7 +793,7 @@ function ConfirmDeleteStorageDialog({ storage, onClose, onConfirm }) {
             onClick={confirm} disabled={deleting}
             className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-50"
           >
-            {deleting ? "Wird gelöscht…" : "Löschen"}
+            {deleting ? "Deleting…" : "Delete"}
           </button>
         </div>
       </div>
@@ -812,9 +812,9 @@ export default function MairListDB({ onEditItem, onNavigate }) {
   const [attributeKeys, setAttributeKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // api-Modus hat keinen Endpunkt für eine ungefilterte Gesamtliste (siehe
-  // apiRepository.js getItems), deshalb wird "Alle Elemente" dort statt
-  // einer leeren Liste als deaktiviert mit Hinweis angezeigt.
+  // api mode has no endpoint for an unfiltered full list (see
+  // apiRepository.js getItems), so "All Elements" is shown there
+  // disabled with a hint instead of an empty list.
   const [isApiMode, setIsApiMode] = useState(false);
 
   const [expanded, setExpanded] = useState(new Set([20, 30]));
@@ -973,7 +973,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
       if (sourceFolderId === folderId) return;
       const sourceFolder = findFolder(tree, sourceFolderId);
       if (sourceFolder && collectFolderAndDescendantIds(sourceFolder).includes(folderId)) {
-        setFolderError("Ordner kann nicht in sich selbst oder einen Unterordner verschoben werden");
+        setFolderError("Folder cannot be moved into itself or a subfolder");
         return;
       }
       try {
@@ -1070,16 +1070,16 @@ export default function MairListDB({ onEditItem, onNavigate }) {
       await loadData();
     } catch (err) {
       if (err.status === 409) {
-        throw new Error("Dieser Storage enthält noch Items und kann nicht gelöscht werden.");
+        throw new Error("This storage still has items and cannot be deleted.");
       }
       throw err;
     }
   };
 
   const rootFolder = {
-    id: "all", name: "Alle Elemente", special: true, children: [],
+    id: "all", name: "All Elements", special: true, children: [],
     disabledHint: isApiMode
-      ? "Im api-Modus gibt es keinen Endpunkt für eine ungefilterte Gesamtliste."
+      ? "There is no endpoint for an unfiltered full list in api mode."
       : undefined,
   };
 
@@ -1092,7 +1092,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
 
   const selectFolder = (folderId) => {
     if (folderId === "all") {
-      if (isApiMode) return; // keine ungefilterte Gesamtliste im api-Modus verfügbar
+      if (isApiMode) return; // no unfiltered full list available in api mode
       setFilterState(ALL_FILTER);
       return;
     }
@@ -1106,12 +1106,12 @@ export default function MairListDB({ onEditItem, onNavigate }) {
 
   const activeFolderName =
     filterState.kind === "folder"
-      ? findFolder(tree, filterState.folderId)?.name || "Alle Elemente"
+      ? findFolder(tree, filterState.folderId)?.name || "All Elements"
       : filterState.kind === "artist" ? filterState.artist
       : filterState.kind === "type" ? capitalize(filterState.type)
       : filterState.kind === "storage" ? storages.find((s) => s.id === filterState.storageId)?.name || "Storage"
       : filterState.kind === "attribute" ? `${filterState.attributeKey}: ${filterState.attributeValue}`
-      : "Alle Elemente";
+      : "All Elements";
 
   const filteredByTree = useMemo(() => {
     let list = [...items];
@@ -1218,7 +1218,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
           <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Folders</span>
           <button
             onClick={handleNewRootFolder}
-            title="Neuer Ordner"
+            title="New folder"
             className="flex h-5 w-5 items-center justify-center rounded text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-orange-500"
           >
             <Plus size={13} />
@@ -1233,9 +1233,9 @@ export default function MairListDB({ onEditItem, onNavigate }) {
           />
         )}
 
-        {loading && <div className="px-3 py-2 text-sm text-zinc-600">Lade Ordner…</div>}
+        {loading && <div className="px-3 py-2 text-sm text-zinc-600">Loading folders…</div>}
         {!loading && error && (
-          <div className="px-3 py-2 text-sm text-red-500">Baum nicht verfügbar</div>
+          <div className="px-3 py-2 text-sm text-red-500">Tree unavailable</div>
         )}
         {!loading && !error && tree.map((folder) => (
           <FolderNode
@@ -1304,7 +1304,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
                 {canManageStorage && expanded.has("storages") && (
                   <button
                     onClick={() => setShowNewStorage(true)}
-                    title="Neuer Storage"
+                    title="New storage"
                     className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-orange-500"
                   >
                     <Plus size={13} />
@@ -1315,7 +1315,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
                 <div>
                   {storages.length === 0 && (
                     <div className="px-3 py-1.5 text-xs text-zinc-600" style={{ paddingLeft: "22px" }}>
-                      Keine Einträge
+                      No entries
                     </div>
                   )}
                   {storages.map((storage) =>
@@ -1354,7 +1354,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
               <Database size={18} className="text-zinc-950" />
             </div>
-            <h1 className="text-lg font-semibold">Datenbank-Verwaltung</h1>
+            <h1 className="text-lg font-semibold">Database Management</h1>
           </div>
           <button
             onClick={() => { invalidate(); loadData(); }}
@@ -1372,14 +1372,14 @@ export default function MairListDB({ onEditItem, onNavigate }) {
               className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500"
             >
               <Plus size={16} />
-              <span>Neues Element</span>
+              <span>New Element</span>
             </button>
             <button
               onClick={() => setShowUpload(true)}
               className="flex items-center gap-2 rounded-md border border-zinc-800 px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
             >
               <Upload size={16} />
-              <span>Datei hochladen</span>
+              <span>Upload file</span>
             </button>
           </div>
 
@@ -1389,7 +1389,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={searchOptions.scope === "view" ? "Suchen im aktuellen View" : "Suchen in der Bibliothek"}
+                placeholder={searchOptions.scope === "view" ? "Search in current view" : "Search the library"}
                 className="w-56 rounded-md border border-zinc-800 bg-zinc-900 py-2 pl-9 pr-9 text-sm text-zinc-200 placeholder-zinc-600 outline-none transition-colors focus:border-zinc-700"
               />
               <button
@@ -1404,7 +1404,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
               {showSearchOptions && (
                 <div className="absolute right-0 top-full z-10 mt-2 w-64 rounded-md border border-zinc-800 bg-zinc-900 p-3 text-sm shadow-xl">
                   <div className="mb-3">
-                    <div className="mb-1.5 text-xs text-zinc-500">Suche in</div>
+                    <div className="mb-1.5 text-xs text-zinc-500">Search in</div>
                     <div className="flex gap-1.5">
                       {[
                         { key: "library", label: "Bibliothek" },
@@ -1429,7 +1429,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
                     <div className="mb-1.5 text-xs text-zinc-500">Felder</div>
                     <div className="space-y-1">
                       {[
-                        { key: "title", label: "Titel" },
+                        { key: "title", label: "Title" },
                         { key: "artist", label: "Artist" },
                         { key: "comment", label: "Kommentar" },
                       ].map((f) => (
@@ -1455,7 +1455,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
                   </div>
 
                   <label className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-500">Volltext (enthält)</span>
+                    <span className="text-xs text-zinc-500">Full text (contains)</span>
                     <button
                       onClick={() => setSearchOptions((prev) => ({ ...prev, fullText: !prev.fullText }))}
                       className={`relative h-5 w-9 rounded-full transition-colors ${
@@ -1492,8 +1492,8 @@ export default function MairListDB({ onEditItem, onNavigate }) {
                 </th>
                 <Th label="ID" sortKey="id" sort={sort} onSort={onSort} />
                 <Th label="Title" sortKey="title" sort={sort} onSort={onSort} />
-                <Th label="Typ" sortKey="type" sort={sort} onSort={onSort} />
-                <Th label="Länge" sortKey="duration" sort={sort} onSort={onSort} />
+                <Th label="Type" sortKey="type" sort={sort} onSort={onSort} />
+                <Th label="Length" sortKey="duration" sort={sort} onSort={onSort} />
                 <Th label="Aktualisiert" sortKey="updatedAt" sort={sort} onSort={onSort} />
                 <Th label="Kommentar" sortKey="comment" sort={sort} onSort={onSort} />
                 <th className="px-4 py-3 text-right font-medium text-zinc-400">Aktionen</th>
@@ -1503,7 +1503,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
               {(loading || folderItemsLoading || librarySearchLoading) && (
                 <tr>
                   <td colSpan={8} className="px-4 py-16 text-center text-sm text-zinc-600">
-                    Lade Elemente…
+                    Loading elements…
                   </td>
                 </tr>
               )}
@@ -1512,7 +1512,7 @@ export default function MairListDB({ onEditItem, onNavigate }) {
                   <td colSpan={8} className="px-4 py-16 text-center text-sm">
                     <div className="flex flex-col items-center gap-2 text-red-500">
                       <AlertTriangle size={20} />
-                      <span>Elemente konnten nicht geladen werden: {error}</span>
+                      <span>Elements could not be loaded: {error}</span>
                     </div>
                   </td>
                 </tr>
@@ -1565,8 +1565,8 @@ export default function MairListDB({ onEditItem, onNavigate }) {
                 <tr>
                   <td colSpan={8} className="px-4 py-16 text-center text-sm text-zinc-600">
                     {search.trim() && searchOptions.scope === "library"
-                      ? `Keine Treffer für „${search.trim()}“ in der Bibliothek.`
-                      : `Keine Elemente in „${activeFolderName}“.`}
+                      ? `No matches for "${search.trim()}" in the library.`
+                      : `No elements in "${activeFolderName}".`}
                   </td>
                 </tr>
               )}

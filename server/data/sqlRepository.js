@@ -383,10 +383,10 @@ function getItemHistory(id) {
     .map((row) => {
       const parsed = parseSlot(row.slot);
       if (!parsed) return null;
-      // playedAt haelt das Format des API-Repositories ein, das Frontend liest
-      // ausschliesslich dieses Feld. Die playlist-Tabelle kennt nur Datum +
-      // Stunde, der Zeitstempel ist also stundengenau (Minuten/Sekunden immer
-      // :00) - anders als im api-Modus, der eine exakte Uhrzeit liefert.
+      // playedAt matches the API repository's format, which the frontend
+      // reads exclusively. The playlist table only knows date + hour, so
+      // the timestamp is hour-precise (minutes/seconds always :00) -
+      // unlike api mode, which returns an exact time.
       const playedAt = `${parsed.date}T${String(parsed.hour).padStart(2, "0")}:00:00`;
       return { slot: row.slot, date: parsed.date, hour: parsed.hour, playedAt, show: null, moderator: null };
     })

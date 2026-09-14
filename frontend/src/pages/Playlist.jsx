@@ -28,10 +28,10 @@ const parseDateStr = (s) => {
   return new Date(y, m - 1, d);
 };
 
-const WEEKDAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTH_NAMES = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 const formatLongDate = (dateStr) => {
@@ -133,7 +133,7 @@ function GoToDatePopover({ date, onClose, onSelect }) {
           type="submit"
           className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-500"
         >
-          Los
+          Go
         </button>
       </form>
     </div>
@@ -178,7 +178,7 @@ function Toolbar({
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => shiftDate(-1)}
-            aria-label="Vorheriger Tag"
+            aria-label="Previous day"
             className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
           >
             <ChevronLeft size={16} />
@@ -188,7 +188,7 @@ function Toolbar({
           </span>
           <button
             onClick={() => shiftDate(1)}
-            aria-label="Nächster Tag"
+            aria-label="Next day"
             className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
           >
             <ChevronRight size={16} />
@@ -197,13 +197,13 @@ function Toolbar({
             onClick={() => onDateChange(toDateStr(new Date()))}
             className="ml-1 rounded-md border border-zinc-800 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
           >
-            Heute
+            Today
           </button>
           <div className="relative">
             <button
               onClick={() => setShowGoTo((v) => !v)}
               className="ml-1 flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-              title="Gehe zu Datum"
+              title="Go to date"
             >
               <CalendarDays size={15} />
             </button>
@@ -238,15 +238,15 @@ function Toolbar({
             {allHours.map((h) => (
               <option key={h} value={h}>
                 {hoursWithData.has(h) ? "● " : "  "}
-                {pad2(h)}:00 Uhr
+                {pad2(h)}:00
               </option>
             ))}
           </select>
           <button
             onClick={() => shiftHour(1)}
-            aria-label="Nächste Stunde"
+            aria-label="Next hour"
             className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-            title="Nächste Stunde"
+            title="Next hour"
           >
             <ChevronRight size={16} />
           </button>
@@ -263,7 +263,7 @@ function Toolbar({
           <ToolbarButton icon={Upload} label="Export" disabled title="Nicht geplant" />
           <ToolbarButton
             icon={RefreshCw}
-            label={loading ? "Lädt…" : "Refresh"}
+            label={loading ? "Loading…" : "Refresh"}
             onClick={() => onHourChange(activeHour)}
             disabled={activeHour == null}
           />
@@ -279,7 +279,7 @@ function Toolbar({
       {saveError && (
         <div className="mt-2 flex items-center gap-2 text-sm text-red-500">
           <AlertTriangle size={14} />
-          <span>Speichern fehlgeschlagen: {saveError}</span>
+          <span>Save failed: {saveError}</span>
         </div>
       )}
     </div>
@@ -328,14 +328,14 @@ function ContextMenu({ x, y, onEdit, onDelete, onMoveUp, onMoveDown, onClose }) 
       <div className="my-1 border-t border-zinc-800" />
       <button className={`${itemClass} text-red-500 hover:text-red-400`} onClick={onDelete}>
         <Trash2 size={13} />
-        <span>Löschen</span>
+        <span>Delete</span>
       </button>
     </div>
   );
 }
 
 // Hook-/AutoHookContainer and RegionContainer content is editable (see
-// docs/MAIRLISTDB-API.md's "Gegenüberstellung" — News-Container uses a
+// docs/MAIRLISTDB-API.md's "Comparison" — News-Container uses a
 // different, not-yet-supported write shape). containerType carries the raw
 // Class string (HookContainer/AutoHookContainer/RegionContainer/...), set by
 // mapApiItemToInternal / isContainerClass.
@@ -405,7 +405,7 @@ function ItemRowList({ rows, onChange }) {
   return (
     <div>
       {rows.length === 0 && (
-        <div className="py-2 text-xs italic text-zinc-600">Keine Elemente</div>
+        <div className="py-2 text-xs italic text-zinc-600">No elements</div>
       )}
 
       <ul className="divide-y divide-zinc-800/60">
@@ -454,14 +454,14 @@ function ItemRowList({ rows, onChange }) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Element suchen und hinzufügen…"
+            placeholder="Search and add an element…"
             className="flex-1 bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none"
           />
         </div>
         {query.trim() && (
           <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-900 shadow-xl">
             {searching && (
-              <div className="px-3 py-2 text-xs text-zinc-600">Suche…</div>
+              <div className="px-3 py-2 text-xs text-zinc-600">Searching…</div>
             )}
             {!searching && results.length === 0 && (
               <div className="px-3 py-2 text-xs text-zinc-600">Keine Treffer</div>
@@ -516,13 +516,13 @@ function ContainerEditor({ containerItem, onSaved, onCancel }) {
       <td colSpan={8} className="py-3 pl-10 pr-4">
         <div className="rounded-md border border-zinc-800 bg-zinc-950 p-3">
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Container-Inhalt bearbeiten
+            Edit container content
           </div>
 
           <ItemRowList rows={rows} onChange={setRows} />
 
           <div className="mt-3 flex items-center justify-end gap-2">
-            {saveError && <span className="mr-auto text-xs text-red-500">Speichern fehlgeschlagen: {saveError}</span>}
+            {saveError && <span className="mr-auto text-xs text-red-500">Save failed: {saveError}</span>}
             <button
               onClick={onCancel}
               disabled={saving}
@@ -588,7 +588,7 @@ function RegionContainerEditor({ containerItem, onSaved, onCancel }) {
       <td colSpan={8} className="py-3 pl-10 pr-4">
         <div className="rounded-md border border-zinc-800 bg-zinc-950 p-3">
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Regionen-Container bearbeiten
+            Edit region container
           </div>
 
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
@@ -608,7 +608,7 @@ function RegionContainerEditor({ containerItem, onSaved, onCancel }) {
             <button
               onClick={addRegion}
               className="flex items-center gap-1 rounded-md border border-zinc-800 px-2 py-1 text-xs font-medium text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-              title="Neue Region hinzufügen"
+              title="Add new region"
             >
               <Plus size={12} />
               <span>Region</span>
@@ -623,7 +623,7 @@ function RegionContainerEditor({ containerItem, onSaved, onCancel }) {
           )}
 
           <div className="mt-3 flex items-center justify-end gap-2">
-            {saveError && <span className="mr-auto text-xs text-red-500">Speichern fehlgeschlagen: {saveError}</span>}
+            {saveError && <span className="mr-auto text-xs text-red-500">Save failed: {saveError}</span>}
             <button
               onClick={onCancel}
               disabled={saving}
@@ -730,7 +730,7 @@ function PlaylistTable({
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-zinc-600">
-        Lade Einträge…
+        Loading entries…
       </div>
     );
   }
@@ -740,7 +740,7 @@ function PlaylistTable({
       <div className="flex flex-1 items-center justify-center text-sm">
         <div className="flex flex-col items-center gap-2 text-red-500">
           <AlertTriangle size={20} />
-          <span>Einträge konnten nicht geladen werden: {error}</span>
+          <span>Entries could not be loaded: {error}</span>
         </div>
       </div>
     );
@@ -749,7 +749,7 @@ function PlaylistTable({
   if (!playlist) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-zinc-600">
-        Stunde wählen, um Einträge anzuzeigen.
+        Select an hour to view entries.
       </div>
     );
   }
@@ -765,9 +765,9 @@ function PlaylistTable({
               <th className="px-3 py-2.5 text-left font-medium text-zinc-400">Start</th>
               <th className="px-3 py-2.5 text-left font-medium text-zinc-400">ID</th>
               <th className="px-3 py-2.5 text-left font-medium text-zinc-400">Ext. ID</th>
-              <th className="px-3 py-2.5 text-left font-medium text-zinc-400">Titel</th>
+              <th className="px-3 py-2.5 text-left font-medium text-zinc-400">Title</th>
               <th className="px-3 py-2.5 text-left font-medium text-zinc-400">Artist</th>
-              <th className="w-10 px-3 py-2.5 text-left font-medium text-zinc-400">Typ</th>
+              <th className="w-10 px-3 py-2.5 text-left font-medium text-zinc-400">Type</th>
               <th className="px-3 py-2.5 text-left font-medium text-zinc-400">Dauer</th>
             </tr>
           </thead>
@@ -843,7 +843,7 @@ function PlaylistTable({
                         <Layers
                           size={13}
                           className="shrink-0 text-violet-400"
-                          title="Container (enthält weiteren Inhalt)"
+                          title="Container (contains further content)"
                         />
                       )}
                       {entry.item?.title || "–"}
@@ -851,7 +851,7 @@ function PlaylistTable({
                         <CircleDot
                           size={9}
                           className="shrink-0 text-orange-500"
-                          title="Lokal geändert (nur für diese Stunde)"
+                          title="Locally changed (for this hour only)"
                         />
                       )}
                     </span>
@@ -898,7 +898,7 @@ function PlaylistTable({
                 {isExpanded && !isEditing && subItems.length === 0 && (
                   <tr className="border-b border-zinc-800/60 bg-zinc-900/20">
                     <td colSpan={9} className="py-2 pl-12 pr-3 text-xs italic text-zinc-600">
-                      Keine Sub-Elemente
+                      No sub-elements
                     </td>
                   </tr>
                 )}
@@ -941,7 +941,7 @@ function PlaylistTable({
                 }}
               >
                 <td colSpan={9} className="px-4 py-16 text-center text-sm text-zinc-600">
-                  Keine Einträge in dieser Stunde
+                  No entries in this hour
                 </td>
               </tr>
             )}
@@ -949,7 +949,7 @@ function PlaylistTable({
         </table>
       </div>
       <div className="flex items-center justify-between border-t border-zinc-800 px-6 py-2.5 text-sm">
-        <span className="text-zinc-500">{playlist.entries.length} Einträge</span>
+        <span className="text-zinc-500">{playlist.entries.length} entries</span>
         <span className="text-zinc-400">
           Gesamtlaufzeit <span className="font-medium text-zinc-100">{formatTotalDuration(totalDuration)}</span>
         </span>
@@ -1100,28 +1100,28 @@ function LibraryPanel({ onInsert, insertDisabled }) {
               <tr className="border-b border-zinc-800">
                 <th className="px-4 py-2 text-left font-medium text-zinc-400">ID</th>
                 <th className="px-4 py-2 text-left font-medium text-zinc-400">Ext. ID</th>
-                <th className="px-4 py-2 text-left font-medium text-zinc-400">Titel</th>
+                <th className="px-4 py-2 text-left font-medium text-zinc-400">Title</th>
                 <th className="px-4 py-2 text-left font-medium text-zinc-400">Artist</th>
-                <th className="w-10 px-4 py-2 text-left font-medium text-zinc-400">Typ</th>
+                <th className="w-10 px-4 py-2 text-left font-medium text-zinc-400">Type</th>
                 <th className="px-4 py-2 text-left font-medium text-zinc-400">Dauer</th>
               </tr>
             </thead>
             <tbody>
               {searchLoading && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-zinc-600">Suche…</td>
+                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-zinc-600">Searching…</td>
                 </tr>
               )}
               {!searchLoading && searchError && (
                 <tr>
                   <td colSpan={6} className="px-4 py-6 text-center text-sm text-red-500">
-                    Suche fehlgeschlagen: {searchError}
+                    Search failed: {searchError}
                   </td>
                 </tr>
               )}
               {!searchLoading && !searchError && (treeLoading || folderItemsLoading) && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-zinc-600">Lade Elemente…</td>
+                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-zinc-600">Loading elements…</td>
                 </tr>
               )}
               {!searchLoading && !searchError && !treeLoading && !folderItemsLoading && visibleItems.length === 0 && (
@@ -1142,7 +1142,7 @@ function LibraryPanel({ onInsert, insertDisabled }) {
                     e.dataTransfer.effectAllowed = "copy";
                   }}
                   onDoubleClick={() => !insertDisabled && onInsert(item)}
-                  title={insertDisabled ? undefined : "Doppelklick oder Ziehen zum Einfügen"}
+                  title={insertDisabled ? undefined : "Double-click or drag to insert"}
                   className={`border-b border-zinc-800/60 transition-colors ${
                     insertDisabled ? "text-zinc-600" : "cursor-pointer hover:bg-zinc-900/50"
                   }`}
@@ -1174,7 +1174,7 @@ function LibraryPanel({ onInsert, insertDisabled }) {
             id="playlist-search-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Elemente durchsuchen (Titel, Artist, Kommentar)…"
+            placeholder="Search elements (title, artist, comment)…"
             className="flex-1 bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none"
           />
           {query && (
@@ -1186,7 +1186,7 @@ function LibraryPanel({ onInsert, insertDisabled }) {
             </button>
           )}
           {insertDisabled && (
-            <span className="text-xs text-zinc-600">Stunde wählen, um Elemente einzufügen</span>
+            <span className="text-xs text-zinc-600">Select an hour to insert elements</span>
           )}
         </div>
       </div>
@@ -1408,7 +1408,7 @@ export default function Playlist({ onEditItem, onNavigate }) {
           <div className="flex flex-1 items-center justify-center text-sm">
             <div className="flex flex-col items-center gap-2 text-red-500">
               <AlertTriangle size={20} />
-              <span>Stunden konnten nicht geladen werden: {hoursError}</span>
+              <span>Hours could not be loaded: {hoursError}</span>
             </div>
           </div>
         ) : (

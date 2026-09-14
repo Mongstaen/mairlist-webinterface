@@ -19,7 +19,7 @@ function AppShell() {
   const [selectedItemId, setSelectedItemId] = useState(null)
   // Set only when the editor is opened from a playlist row: which slot the
   // "volatile" (per-instance) edits should be saved against. Null when
-  // opened from the Elemente list, where only the global item exists.
+  // opened from the Elements list, where only the global item exists.
   const [playlistContext, setPlaylistContext] = useState(null)
   // Set when navigating into the Mix Editor from the playlist: the selected
   // items (in playlist order) plus which playlist/hour they came from.
@@ -42,7 +42,7 @@ function AppShell() {
   }
 
   if (loading) {
-    return <div className="flex h-screen w-full items-center justify-center bg-zinc-950 text-zinc-400">Laden…</div>
+    return <div className="flex h-screen w-full items-center justify-center bg-zinc-950 text-zinc-400">Loading…</div>
   }
 
   return (

@@ -35,8 +35,8 @@ function Panel({ title, children, className = "" }) {
   );
 }
 
-// Findet aus einer Liste von Playlist-Einträgen (mit scheduledStart) denjenigen,
-// dessen Startzeit am nächsten an "jetzt" liegt und in der Vergangenheit liegt.
+// From a list of playlist entries (with scheduledStart), finds the one
+// whose start time is closest to "now" and lies in the past.
 function findCurrentEntry(entries, now) {
   const nowSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
   let best = null;
@@ -177,7 +177,7 @@ export default function Dashboard({ onNavigate }) {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
               <LayoutDashboard size={18} className="text-zinc-950" />
             </div>
-            <h1 className="text-lg font-semibold">Übersicht</h1>
+            <h1 className="text-lg font-semibold">Overview</h1>
           </div>
           <button
             onClick={load}
@@ -191,14 +191,14 @@ export default function Dashboard({ onNavigate }) {
           {error && (
             <div className="mb-4 flex items-center gap-2 rounded-md border border-red-900 bg-zinc-900 px-4 py-3 text-sm text-red-500">
               <AlertTriangle size={14} />
-              <span>Daten konnten nicht geladen werden: {error}</span>
+              <span>Data could not be loaded: {error}</span>
             </div>
           )}
 
           <div className="space-y-6">
             {/* Sektion 1: Live-Cockpit */}
             <div className="grid grid-cols-5 gap-6">
-              <Panel title="Läuft gerade" className="col-span-3">
+              <Panel title="Now playing" className="col-span-3">
                 <div className="flex items-center gap-4 px-4 py-4">
                   {currentEntry?.item?.cover ? (
                     <img
@@ -221,18 +221,18 @@ export default function Dashboard({ onNavigate }) {
                       </>
                     ) : (
                       <div className="text-sm text-zinc-600">
-                        {loading ? "Lädt…" : "Gerade läuft nichts Geplantes"}
+                        {loading ? "Loading…" : "Nothing scheduled is playing right now"}
                       </div>
                     )}
                   </div>
                 </div>
               </Panel>
 
-              <Panel title="Als Nächstes" className="col-span-2">
+              <Panel title="Up next" className="col-span-2">
                 <div className="divide-y divide-zinc-800">
                   {upcomingEntries.length === 0 && (
                     <div className="px-4 py-4 text-sm text-zinc-600">
-                      {loading ? "Lädt…" : "Keine kommenden Einträge"}
+                      {loading ? "Loading…" : "No upcoming entries"}
                     </div>
                   )}
                   {upcomingEntries.map((entry, i) => (
@@ -252,7 +252,7 @@ export default function Dashboard({ onNavigate }) {
                   <Headphones size={20} className="shrink-0 text-orange-500" />
                   <div>
                     <div className="text-2xl font-semibold text-orange-500">{listeners.count}</div>
-                    <div className="text-xs text-zinc-400">Aktuelle Hörer</div>
+                    <div className="text-xs text-zinc-400">Current listeners</div>
                   </div>
                 </div>
               )}
@@ -260,7 +260,7 @@ export default function Dashboard({ onNavigate }) {
 
             {/* Sektion 2: Sende-Vorschau */}
             <div>
-              <div className="mb-2 text-sm text-zinc-400">Sendeplanung — nächste Stunden</div>
+              <div className="mb-2 text-sm text-zinc-400">Schedule — next hours</div>
               <div className="grid grid-cols-8 gap-3">
                 {hourTiles.map(({ hour, count }) => {
                   const empty = count === 0;
@@ -279,7 +279,7 @@ export default function Dashboard({ onNavigate }) {
                         </div>
                       ) : (
                         <div className="mt-1 text-xs text-zinc-400">
-                          {count == null ? "…" : `${count} Einträge`}
+                          {count == null ? "…" : `${count} entries`}
                         </div>
                       )}
                     </div>
@@ -292,8 +292,8 @@ export default function Dashboard({ onNavigate }) {
             <div className="grid grid-cols-4 gap-4">
               <StatTile icon={Music} value={loading ? "…" : stats?.totalItems ?? 0} label="Items" />
               <StatTile icon={HardDrive} value={loading ? "…" : stats?.totalStorages ?? 0} label="Storages" />
-              <StatTile icon={Folder} value={loading ? "…" : stats?.totalFolders ?? 0} label="Ordner" />
-              <StatTile icon={Users} value={loading ? "…" : stats?.totalUsers ?? 0} label="Benutzer" />
+              <StatTile icon={Folder} value={loading ? "…" : stats?.totalFolders ?? 0} label="Folders" />
+              <StatTile icon={Users} value={loading ? "…" : stats?.totalUsers ?? 0} label="Users" />
             </div>
 
             {isAdmin && system?.dbPath && (

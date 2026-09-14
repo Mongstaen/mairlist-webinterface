@@ -1,33 +1,33 @@
-# ✨ Funktionskatalog
+# ✨ Feature Catalog
 
-Vollständiger Funktionsumfang des mAirListDB Clients, recherchiert aus der offiziellen Doku (mairlist.docs.mairlist.com), dem alten Wiki (wiki.mairlist.com), den Release Notes und dem Community Forum. Die neue Doku ist teilweise unvollständig (Scheduling und Mix Editor sind dort leere Stubs), diese Lücken wurden aus Wiki, Release Notes und Forum gefüllt.
+Complete feature scope of the mAirListDB client, researched from the official docs (mairlist.docs.mairlist.com), the old wiki (wiki.mairlist.com), the release notes, and the community forum. The new docs are partially incomplete (Scheduling and Mix Editor are empty stubs there); these gaps were filled from the wiki, release notes, and forum.
 
-Legende: ✅ fertig (gegen Mock) · 🚧 in Arbeit · ⬜ offen · 🔽 späte Phase · ❌ außerhalb des Scopes
+Legend: ✅ done (against mock) · 🚧 in progress · ⬜ open · 🔽 later phase · ❌ out of scope
 
-## 🗺️ Phasen-Status
+## 🗺️ Phase status
 
-| Phase | Inhalt | Status |
+| Phase | Content | Status |
 |---|---|---|
-| A | Frontend gegen Mock: Elemente-Liste, Item Editor (alle 6 Tabs), Cue Editor (Marker, Zoom, Prioritätssortierung), Datei-Upload, Playlist im mAirList Layout, leere Stunden, Drag-and-Drop, lokale Overrides vs. DB-Speichern | ✅ vollständig fertig |
-| B–E | siehe Bereichs-Tabellen unten (Bibliothek-Feinheiten, Mix Editor, Voice Tracking) | ⬜ offen |
-| F | Mehrbenutzer: eigene Benutzerverwaltung mit bcrypt, 5 Rollen, Bootstrap-Admin — siehe Bereichs-Tabelle unten | 🟡 Benutzerverwaltung fertig, Konflikt-Erkennung offen |
-| G | Echte Datenbank: `.mldb` (SQLite) statt Mock anbinden | ✅ fertig |
-| — | Dritte Datenquelle: mAirListDB Server REST-API statt direktem SQLite-Zugriff (`DATA_SOURCE=api`) — siehe [Bereichs-Tabelle unten](#-api-basierte-datenquelle-mairlistdb-server) | 🟡 Kernfunktionen fertig, einige Funktionen bewusst noch offen |
-| H, I | unverändert offen | ⬜ offen |
+| A | Frontend against mock: item list, item editor (all 6 tabs), cue editor (markers, zoom, priority sorting), file upload, playlist in the mAirList layout, empty hours, drag-and-drop, local overrides vs. DB save | ✅ fully complete |
+| B–E | see the section tables below (library refinements, mix editor, voice tracking) | ⬜ open |
+| F | Multi-user: dedicated user management with bcrypt, 5 roles, bootstrap admin — see section table below | 🟡 user management complete, conflict detection open |
+| G | Real database: connect `.mldb` (SQLite) instead of mock | ✅ complete |
+| — | Third data source: mAirListDB server REST API instead of direct SQLite access (`DATA_SOURCE=api`) — see [section table below](#-api-based-data-source-mairlistdb-server) | 🟡 core functions complete, some features deliberately still open |
+| H, I | unchanged, open | ⬜ open |
 
-**Phase G – abgeschlossen:**
-- `server/data/sqlRepository.js` erstellt mit `better-sqlite3`, identische Signaturen zu `repository.js`
-- Spalten-Mapping vollständig: `items`, `item_cuemarkers`, `item_attributes`, `item_folders`, `playlist`
-- Cue-Typ-Mapping implementiert: camelCase Code ↔ PascalCase DB (`cueIn` ↔ `CueIn` etc.)
-- Playlist-Slot-Format korrekt geparst (Mitternacht ohne Uhrzeit, andere Stunden mit `.000`)
-- Umschalten per `DATA_SOURCE=sqlite`, DB-Pfad per `DB_PATH`
-- Write-Beweis bestanden: Item anlegen, Server neu starten, Item noch vorhanden
-- Playlist-Insert ebenfalls getestet und funktioniert
-- `.mldb` Dateien in `.gitignore`, nie ins Repo
+**Phase G – completed:**
+- `server/data/sqlRepository.js` created with `better-sqlite3`, identical signatures to `repository.js`
+- Column mapping complete: `items`, `item_cuemarkers`, `item_attributes`, `item_folders`, `playlist`
+- Cue-type mapping implemented: camelCase code ↔ PascalCase DB (`cueIn` ↔ `CueIn` etc.)
+- Playlist slot format parsed correctly (midnight without a time, other hours with `.000`)
+- Switchable via `DATA_SOURCE=sqlite`, DB path via `DB_PATH`
+- Write proof passed: create item, restart server, item still present
+- Playlist insert also tested and works
+- `.mldb` files in `.gitignore`, never committed to the repo
 
-**Read-Paths:**
+**Read paths:**
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
 | `getFolderTree`, `getFolderById`, `getFolderChildren` | ✅ |
 | `getStorages` | ✅ |
@@ -38,9 +38,9 @@ Legende: ✅ fertig (gegen Mock) · 🚧 in Arbeit · ⬜ offen · 🔽 späte P
 | `getUserByUsername`, `getUserById`, `getScopesByUserId`, `getScopesByGroupId` | ✅ |
 | `getSessionBySid` | ✅ |
 
-**Write-Paths** (smoke-getestet gegen Kopie `mairlist.test.mldb`, siehe `server/scripts/smoke-writes.js`):
+**Write paths** (smoke-tested against a copy `mairlist.test.mldb`, see `server/scripts/smoke-writes.js`):
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
 | `createItem` | ✅ |
 | `updateItem` | ✅ |
@@ -53,430 +53,416 @@ Legende: ✅ fertig (gegen Mock) · 🚧 in Arbeit · ⬜ offen · 🔽 späte P
 | `insertPlaylistItem` | ✅ |
 | `removePlaylistItem` | ✅ |
 | `reorderPlaylist` | ✅ |
-| `savePlaylistItemOverrides` | 🟡 nicht smoke-getestet |
-| `createSession`, `deleteSession` | 🟡 nicht smoke-getestet |
-| `createStorage`, `updateStorage`, `deleteStorage` | 🟡 nicht smoke-getestet |
-| `uploadFile` | 🟡 nicht smoke-getestet |
+| `savePlaylistItemOverrides` | 🟡 not smoke-tested |
+| `createSession`, `deleteSession` | 🟡 not smoke-tested |
+| `createStorage`, `updateStorage`, `deleteStorage` | 🟡 not smoke-tested |
+| `uploadFile` | 🟡 not smoke-tested |
 
-**Offene TODOs in sqlRepository.js:**
-- `getItemHistory()` gibt leeres Array zurück; `playlistlog` selbst ist inzwischen über `getLogs()`/`getRecentLogs()` für die Logs-Seite und das Dashboard angebunden
-- `writeHour()` macht DELETE+INSERT der ganzen Stunde statt gezielter Position-Shifts
-- `cover` und `containerType` bleiben `null` (`xmldata`/`options` noch nicht geparst)
-- Noch offen aus FIELD-SEMANTICS.md: `items.color` Format, `items.endtype` Werte, `playlist.xmldata` Override-Format, `item_cuedata.xmldata` für Hüllkurven
+**Open TODOs in sqlRepository.js:**
+- `getItemHistory()` returns an empty array; `playlistlog` itself is now connected via `getLogs()`/`getRecentLogs()` for the logs page and the dashboard
+- `writeHour()` does a DELETE+INSERT of the whole hour instead of targeted position shifts
+- `cover` and `containerType` remain `null` (`xmldata`/`options` not yet parsed)
+- Still open from FIELD-SEMANTICS.md: `items.color` format, `items.endtype` values, `playlist.xmldata` override format, `item_cuedata.xmldata` for envelopes
 
 ---
 
-## 🔌 API-basierte Datenquelle (mAirListDB Server)
+## 🔌 API-based data source (mAirListDB server)
 
-Dritte Repository-Implementierung neben Mock und SQLite:
-`server/data/apiRepository.js`, aktiviert über `DATA_SOURCE=api`. Statt
-die `.mldb`-Datei direkt mit `better-sqlite3` zu öffnen, spricht sie mit
-dem mAirListDB Server über dessen REST-API (Port 8840, siehe
-[`docs/MAIRLISTDB-API.md`](MAIRLISTDB-API.md)). Löst das
-SQLite-Locking-Problem ("database is locked" bei parallel laufendem
-mAirList) strukturell, da nicht mehr auf dieselbe Datei zugegriffen
-wird.
+Third repository implementation alongside mock and SQLite:
+`server/data/apiRepository.js`, enabled via `DATA_SOURCE=api`. Instead of
+opening the `.mldb` file directly with `better-sqlite3`, it talks to the
+mAirListDB server via its REST API (port 8840, see
+[`docs/MAIRLISTDB-API.md`](MAIRLISTDB-API.md)). This structurally solves
+the SQLite locking problem ("database is locked" while mAirList runs in
+parallel), since the same file is no longer accessed directly.
 
-Konfiguration: `API_DB_BASE_URL`, `API_DB_USER`, `API_DB_PASSWORD`,
-`API_DB_STATION` in `.env` (siehe
-`server/.env.production.example`). Die Webinterface-eigene
-Benutzerverwaltung (`server/data/webAuthDb.js`, bcrypt) ist von
-`DATA_SOURCE` unabhängig und funktioniert in allen drei Modi identisch.
+Configuration: `API_DB_BASE_URL`, `API_DB_USER`, `API_DB_PASSWORD`,
+`API_DB_STATION` in `.env` (see `server/.env.production.example`). The
+webinterface's own user management (`server/data/webAuthDb.js`, bcrypt)
+is independent of `DATA_SOURCE` and works identically in all three modes.
 
-Verifiziert mit 19 Smoke-Tests gegen die Produktivinstanz
-(`server/scripts/smoke-reads-api.js`, `smoke-writes-api.js`). Der
-Kern-Workflow (Ordnerbaum, Items lesen/bearbeiten/speichern,
-Audio-Streaming, Playlist lesen/bearbeiten) ist damit produktiv
-nutzbar und live gegen die echte mAirList-Installation verifiziert —
-inklusive dem strukturellen Wegfall des SQLite-Locking-Konflikts mit
-parallel laufendem mAirList.
+Verified with 19 smoke tests against the production instance
+(`server/scripts/smoke-reads-api.js`, `smoke-writes-api.js`). The core
+workflow (folder tree, read/edit/save items, audio streaming, read/edit
+playlist) is thereby usable in production and verified live against the
+real mAirList installation — including the structural elimination of the
+SQLite locking conflict with mAirList running in parallel.
 
-**Concurrency-Limit gegen "database is locked":** Bei ~12 parallelen
-Requests meldete der mAirListDB Server selbst `database is locked` (er
-öffnet die `.mldb` intern ebenfalls über SQLite). `apiRepository.js`
-drosselt deshalb ausgehende Requests auf `API_DB_MAX_CONCURRENT`
-(Default 3, siehe `server/.env.production.example`) statt sie
-unbegrenzt parallel abzufeuern.
+**Concurrency limit against "database is locked":** At around 12
+parallel requests, the mAirListDB server itself reported `database is
+locked` (it also opens the `.mldb` internally via SQLite). `apiRepository.js`
+therefore throttles outgoing requests to `API_DB_MAX_CONCURRENT`
+(default 3, see `server/.env.production.example`) instead of firing them
+off unlimited in parallel.
 
-**Fallstrick — async Stub-Funktion + synchrones `res.json()`:** Route-
-Handler in `server/routes/library.js` rufen manche Repository-Funktionen
-synchron auf (`res.json(repo.getX())`, ohne `await`), passend zu
-`sqlRepository.js`s synchronen Funktionen gleichen Namens. Eine
-`async`-Funktion in `apiRepository.js` an dieser Stelle liefert
-`res.json()` ein unaufgelöstes Promise, das zu `{}` statt zum
-erwarteten Array serialisiert wird (Frontend-Symptom: `[...items]`
-schlägt fehl, weil `{}` nicht iterierbar ist). Die `emptyStub()`-Stubs
-in `apiRepository.js` sind deshalb bewusst synchron.
+**Pitfall — async stub function + synchronous `res.json()`:** Route
+handlers in `server/routes/library.js` call some repository functions
+synchronously (`res.json(repo.getX())`, without `await`), matching
+`sqlRepository.js`'s synchronous functions of the same name. An `async`
+function in `apiRepository.js` at that spot causes `res.json()` to
+receive an unresolved promise, which serializes to `{}` instead of the
+expected array (frontend symptom: `[...items]` fails because `{}` is not
+iterable). The `emptyStub()` stubs in `apiRepository.js` are therefore
+deliberately synchronous.
 
-**Verfügbar:**
+**Available:**
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
 | `getCapabilities`, `getPermissions` | ✅ |
-| `getFolders` (flache Liste) | ✅ |
-| `getFolderTree` (aus `getFolders()` clientseitig verschachtelt aufgebaut) | ✅ |
+| `getFolders` (flat list) | ✅ |
+| `getFolderTree` (built client-side, nested, from `getFolders()`) | ✅ |
 | `getItemsByFolder`, `getItemById`, `getItemsByIds` | ✅ |
 | `getItemFolders`, `getItemRestrictions`, `getItemHistory` | ✅ |
 | `getPlaylistHour`, `getPlaylistAttributes`, `getPlaylistsByDate`, `getPlaylistById` | ✅ |
-| `writeHour` (Playlist-Stunde speichern, volle Ersetzung) | ✅ |
-| `getArtists`, `getTitles` (Distinct-Listen) | ✅ |
-| `getAudioStreamUrl`, `getAudioStream` (Audio-Proxy, Original + low-quality; Zugangsdaten bleiben serverseitig, landen nie im Frontend) | ✅ |
-| `updateItem` (Items inkl. Cue-Punkte, Gain, Attribute speichern) | ✅ |
-| `getFolderById`, `getFolderChildren` (aus `getFolders()` clientseitig gefiltert) | ✅ |
-| `getItems` (nur mit `folderId`, siehe unten) | ✅ |
-| `reorderPlaylist`, `insertPlaylistItem`, `removePlaylistItem` (Read-Modify-Write auf den rohen `Items[]`, siehe unten) | ✅ |
-| `savePlaylistItemOverrides` | 🟡 nur Cue-Marker (`Markers`), andere Override-Arten werden mangels bekanntem Zielfeld verworfen |
+| `writeHour` (save a playlist hour, full replacement) | ✅ |
+| `getArtists`, `getTitles` (distinct lists) | ✅ |
+| `getAudioStreamUrl`, `getAudioStream` (audio proxy, original + low-quality; credentials stay server-side, never reach the frontend) | ✅ |
+| `updateItem` (save items incl. cue points, gain, attributes) | ✅ |
+| `getFolderById`, `getFolderChildren` (filtered client-side from `getFolders()`) | ✅ |
+| `getItems` (only with `folderId`, see below) | ✅ |
+| `reorderPlaylist`, `insertPlaylistItem`, `removePlaylistItem` (read-modify-write on the raw `Items[]`, see below) | ✅ |
+| `savePlaylistItemOverrides` | 🟡 only cue markers (`Markers`), other override types are discarded for lack of a known target field |
 | `getConfig` (`/api/v1/config`) | ✅ |
-| `getAttributeKeys` (aus `getConfig()`s `StandardAttributes`-XML, siehe unten) | ✅ |
-| `getDashboardStats`, `getTodayPlaylist` (siehe unten) | ✅ alle vier Dashboard-Werte echt (kein `null` mehr) |
-| `getStorages` (`/api/v1/storages`, siehe unten) | ✅ verifiziert, Endpunkt existiert (live getestet: 2 Storages) |
-| Ordner-CRUD: `createFolder`, `renameFolder`, `moveFolder`, `deleteFolder` (siehe unten) | ✅ verifiziert gegen den echten Server |
-| `createItem`, `deleteItem` (siehe unten) | ✅ verifiziert; Ordner-Zuordnung per `folderId` umgesetzt (`assignItemsToFolder`) |
-| `moveItemToFolder`, `setItemFolders`, `removeItemFromFolder` (siehe unten) | ✅ Body-Format per Wireshark verifiziert (`movefrom`/`delete`-Flag, `PUT /items/<id>/folders`) |
+| `getAttributeKeys` (from `getConfig()`'s `StandardAttributes` XML, see below) | ✅ |
+| `getDashboardStats`, `getTodayPlaylist` (see below) | ✅ all four dashboard values are real (no more `null`) |
+| `getStorages` (`/api/v1/storages`, see below) | ✅ verified, endpoint exists (tested live: 2 storages) |
+| Folder CRUD: `createFolder`, `renameFolder`, `moveFolder`, `deleteFolder` (see below) | ✅ verified against the real server |
+| `createItem`, `deleteItem` (see below) | ✅ verified; folder assignment implemented via `folderId` (`assignItemsToFolder`) |
+| `moveItemToFolder`, `setItemFolders`, `removeItemFromFolder` (see below) | ✅ body format verified via Wireshark (`movefrom`/`delete` flag, `PUT /items/<id>/folders`) |
 
-**Playlist-Schreiboperationen — Read-Modify-Write auf rohen Einträgen:**
-Die API kennt nur Lesen/Schreiben der kompletten Stunde (kein
-Endpunkt für Einfügen/Entfernen/Umsortieren einzelner Slots). `reorderPlaylist`,
-`insertPlaylistItem` und `removePlaylistItem` lesen deshalb erst die
-rohen, unveränderten `Items[]`-Einträge der Stunde (`getPlaylistHour`),
-mutieren das Array in-memory und schreiben es komplett zurück
-(`writeHour`). Wichtig: Es wird auf den **rohen** API-Einträgen
-gearbeitet, nicht auf einer internen `{time, item}`-Repräsentation —
-Dummy-Einträge (`Class:"Dummy"`, z. B. "PH Stundenanfang") haben keine
-`DatabaseID`, dafür aber Felder wie `Timing`/`State`/`Customized`/
-`FixTimeFrame`/`FixTime`, die eine interne Item-Repräsentation nicht
-abbilden kann. Nur neu eingefügte Einträge werden frisch aus dem
-internen Item-Objekt gebaut, alles andere läuft unverändert durch.
-`savePlaylistItemOverrides` mergt Cue-Overrides direkt in das
-`Markers`-Feld des rohen Eintrags (das einzige bekannte, sicher
-round-trip-fähige Pro-Slot-Feld); andere Override-Arten haben kein
-bekanntes Zielfeld in der API und werden verworfen statt geraten.
+**Playlist write operations — read-modify-write on raw entries:**
+The API only knows how to read/write the entire hour (no endpoint to
+insert/remove/reorder individual slots). `reorderPlaylist`,
+`insertPlaylistItem`, and `removePlaylistItem` therefore first read the
+raw, unmodified `Items[]` entries of the hour (`getPlaylistHour`), mutate
+the array in memory, and write it back in full (`writeHour`). Important:
+this operates on the **raw** API entries, not on an internal
+`{time, item}` representation — dummy entries (`Class:"Dummy"`, e.g.
+"PH hour start") have no `DatabaseID`, but do have fields such as
+`Timing`/`State`/`Customized`/`FixTimeFrame`/`FixTime` that an internal
+item representation cannot map. Only newly inserted entries are freshly
+built from the internal item object; everything else passes through
+unchanged. `savePlaylistItemOverrides` merges cue overrides directly into
+the `Markers` field of the raw entry (the only known, safely
+round-trippable per-slot field); other override types have no known
+target field in the API and are discarded instead of guessed.
 
-**Container-Items (Werbeblöcke) in `getPlaylistById`:** Playlist-Einträge
-vom API-Typ `Class: "Container"` (z. B. Werbeblöcke mit verschachtelten
-Items, siehe `docs/MAIRLISTDB-API.md`) werden weiterhin als ein
-einzelner Playlist-Eintrag geführt, tragen aber jetzt zusätzlich ihre
-verschachtelte `Items`-Liste (eine Ebene tief) als `item.subItems` mit
-— `mapApiItemToInternal` in `apiItems.js` mappt sie rekursiv. Im
-Frontend (`Playlist.jsx`) lässt sich eine Container-Zeile über einen
-Aufklapp-Pfeil öffnen und zeigt die Sub-Items dann als eingerückte
-Zeilen darunter an. Ein Container ohne eigene Sub-Items zeigt beim
-Aufklappen einen Hinweistext statt eines Fehlers.
+**Container items (ad blocks) in `getPlaylistById`:** Playlist entries of
+the API type `Class: "Container"` (e.g. ad blocks with nested items, see
+`docs/MAIRLISTDB-API.md`) are still kept as a single playlist entry, but
+now additionally carry their nested `Items` list (one level deep) as
+`item.subItems` — `mapApiItemToInternal` in `apiItems.js` maps them
+recursively. In the frontend (`Playlist.jsx`), a container row can be
+opened via an expand arrow and then shows the sub-items as indented rows
+underneath. A container with no sub-items of its own shows a hint text
+instead of an error when expanded.
 
-**Hook-Container-Inhalt bearbeitbar (api-Modus):** Für Hook-Container
-und automatische Hook-Container (`Class: "HookContainer"` /
-`"AutoHookContainer"`) zeigt die aufgeklappte Container-Zeile
-zusätzlich einen "Bearbeiten"-Button. Im Bearbeitungsmodus lassen sich
-Sub-Items entfernen (X pro Zeile), per Drag&Drop umsortieren und über
-ein Suchfeld (nutzt `searchItems()`) neue Elemente hinzufügen.
-"Speichern" ruft `PUT /api/items/:id/container-contents` (Body:
-`{ itemIds: [...] }`, Reihenfolge = gewünschte Reihenfolge) auf, das im
-Backend auf `apiItems.js`s `updateContainerContents()` geht: lädt den
-aktuellen Container-Zustand (damit Class/Type/InnerFadeDuration/Options
-erhalten bleiben), löst jede itemId zum vollständigen Item-Objekt auf
-und schreibt `Playlist.Items` + einen aus den Titeln zusammengebauten
-`Comment` zurück (siehe `docs/MAIRLISTDB-API.md`, "Hook-Container-Inhalt
-setzen"). Nach dem Speichern wird nur der betroffene Playlist-Eintrag
-lokal ersetzt, kein Reload der ganzen Stunde.
+**Hook-container content editable (api mode):** For hook containers and
+automatic hook containers (`Class: "HookContainer"` /
+`"AutoHookContainer"`), the expanded container row additionally shows an
+"Edit" button. In edit mode, sub-items can be removed (X per row),
+reordered via drag & drop, and new elements can be added via a search
+field (uses `searchItems()`). "Save" calls
+`PUT /api/items/:id/container-contents` (body: `{ itemIds: [...] }`,
+order = desired order), which on the backend goes to `apiItems.js`'s
+`updateContainerContents()`: loads the current container state (so
+Class/Type/InnerFadeDuration/Options are preserved), resolves each
+itemId to the full item object, and writes back `Playlist.Items` plus a
+`Comment` built from the titles (see `docs/MAIRLISTDB-API.md`, "Setting
+hook-container content"). After saving, only the affected playlist entry
+is replaced locally, no reload of the whole hour.
 
-Nur im api-Modus verfügbar (`DATA_SOURCE=api`) — der Bearbeiten-Button
-erscheint im mock/sqlite-Modus gar nicht erst, die Route antwortet dort
-mit einer klaren Fehlermeldung statt eines Fake-Erfolgs. Nachrichten-
-Container bleiben weiterhin schreibgeschützt (andere Inhalts-Struktur,
-siehe "Gegenüberstellung" in `docs/MAIRLISTDB-API.md`).
+Only available in api mode (`DATA_SOURCE=api`) — the edit button doesn't
+even appear in mock/sqlite mode; the route there responds with a clear
+error message instead of a fake success. News containers remain
+read-only (different content structure, see "Comparison" in
+`docs/MAIRLISTDB-API.md`).
 
-**Regionen-Container-Inhalt bearbeitbar (api-Modus):** Für
-Regionen-Container (`Class: "RegionContainer"`) zeigt die aufgeklappte
-Container-Zeile ebenfalls einen "Bearbeiten"-Button, aber mit einem Tab
-pro Region statt einer einzelnen Liste. Die Anzahl der Tabs ergibt sich
-aus den tatsächlich vorhandenen `Content`-Keys (plus ein "+Region"-
-Button für die nächste freie Nummer) — es gibt keine feste Regionen-
-Anzahl. Jede Region nutzt intern dieselbe Zeilen-Liste (Entfernen/
-Drag&Drop-Umsortieren/Hinzufügen über Suche) wie der Hook-Container-
-Editor (`ItemRowList`-Komponente, aus beiden Editoren geteilt). Eine
-leere Region ist ein gültiger Zustand, kein Fehler.
+**Region-container content editable (api mode):** For region containers
+(`Class: "RegionContainer"`), the expanded container row also shows an
+"Edit" button, but with one tab per region instead of a single list. The
+number of tabs results from the actually present `Content` keys (plus a
+"+Region" button for the next free number) — there is no fixed number of
+regions. Each region internally uses the same row list (remove/reorder
+via drag & drop/add via search) as the hook-container editor
+(`ItemRowList` component, shared between both editors). An empty region
+is a valid state, not an error.
 
-"Speichern" ruft `PUT /api/items/:id/region-container-contents` (Body:
-`{ regions: { "1": [itemId, ...], "2": [...] } }`) auf, das im Backend
-auf `apiItems.js`s `updateRegionContainerContents()` geht: löst pro
-Region die itemIds zu vollständigen Item-Objekten auf (geteilte
-Hilfsfunktion `resolveItemsForContainer`, auch vom Hook-Container-Pfad
-genutzt) und baut die zweifache Verschachtelung
-`Content[region].Items[0].Playlist.Items[...]` auf (siehe
-`docs/MAIRLISTDB-API.md`, "Regionen-Container erstellen/
-aktualisieren"). Komfortfunktionen wie "gleiche Länge für alle
-Regionen" (wie im mAirList-Client) sind bewusst nicht nachgebaut —
-Regionen werden laut Rückmeldung praktisch nicht genutzt.
+"Save" calls `PUT /api/items/:id/region-container-contents` (body:
+`{ regions: { "1": [itemId, ...], "2": [...] } }`), which on the backend
+goes to `apiItems.js`'s `updateRegionContainerContents()`: resolves the
+itemIds for each region to full item objects (shared helper function
+`resolveItemsForContainer`, also used by the hook-container path) and
+builds the double nesting `Content[region].Items[0].Playlist.Items[...]`
+(see `docs/MAIRLISTDB-API.md`, "Creating/updating region containers").
+Convenience features like "equal length for all regions" (as in the
+mAirList client) were deliberately not replicated — regions are, per
+feedback, practically never used.
 
-**Bewusst leer statt Fehler** (`getLogs`, `getRecentLogs`): Diese
-Funktionen liefern im api-Modus ein leeres Array statt eines Fehlers.
-Grund: Das Frontend (`Playlist.jsx`, `DatabaseManager.jsx`) lädt den
-Ordnerbaum zusammen mit solchen Listen in einem gemeinsamen
-`Promise.all` — würde auch nur eine davon werfen, schlägt der gesamte
-Batch fehl und die Sidebar zeigt "Baum nicht verfügbar", obwohl
-`/api/tree` selbst erfolgreich war. Ein leeres Array lässt die UI
-laden; es gibt für `getLogs`/`getRecentLogs` (noch) keinen
-entsprechenden Single-Shot-Endpunkt in der mAirListDB Server API
-(siehe `docs/MAIRLISTDB-API.md`). `getItems` liefert ebenfalls `[]`,
-allerdings nur wenn keine `folderId` übergeben wird (siehe unten) —
-mit `folderId` liefert es echte Daten. Jede dieser Funktionen loggt
-beim ersten Aufruf seit Serverstart einmalig eine `console.warn`-Zeile,
-damit der leere Zustand im Server-Log sichtbar bleibt, ohne bei jedem
-Request zu spammen.
+**Deliberately empty instead of an error** (`getLogs`, `getRecentLogs`):
+These functions return an empty array instead of an error in api mode.
+Reason: the frontend (`Playlist.jsx`, `DatabaseManager.jsx`) loads the
+folder tree together with such lists in a shared `Promise.all` — if even
+one of them threw, the entire batch would fail and the sidebar would
+show "tree unavailable" even though `/api/tree` itself succeeded. An
+empty array lets the UI load; there is (still) no corresponding
+single-shot endpoint for `getLogs`/`getRecentLogs` in the mAirListDB
+server API (see `docs/MAIRLISTDB-API.md`). `getItems` also returns `[]`,
+but only if no `folderId` is passed (see below) — with `folderId` it
+returns real data. Each of these functions logs a `console.warn` line
+once per server start on first call, so the empty state remains visible
+in the server log without spamming on every request.
 
-**`getItemTypes` – hartcodierte, größtenteils verifizierte Liste**: Kein
-`/api/v1/itemtypes`-Endpunkt existiert. `apiItems.js` liefert deshalb
-eine feste Liste, die per Live-Abfrage gegen die echte Datenbank
-verifiziert wurde: 24 von 27 Typen aus dem mAirList-Client-Dropdown
-(vollständige Tabelle in "Item-Typen (`Type`-Feld)" in
-`docs/MAIRLISTDB-API.md`). Nicht verifiziert (im Bestand nicht
-vorhanden): Cartwall-Seite, Benutzerdefiniert 1-3. Container sind kein
-eigener `Type`-Wert, sondern über das `Class`-Feld erkennbar — siehe den
-⚠️-Hinweis dort, das ist eine leicht zu übersehende Falle für jede
-typbasierte Logik. Damit Items mit einem noch nicht erfassten Typ
-trotzdem korrekt angezeigt werden, zeigt das Typ-Dropdown in
-`ItemEditor.jsx` für einen unbekannten Wert den Rohwert als zusätzliche
-Option an, statt leer zu bleiben oder zu crashen.
+**`getItemTypes` – hardcoded, mostly verified list**: No
+`/api/v1/itemtypes` endpoint exists. `apiItems.js` therefore returns a
+fixed list, verified via a live query against the real database: 24 of
+27 types from the mAirList client dropdown (full table in "Item types
+(`Type` field)" in `docs/MAIRLISTDB-API.md`). Not verified (not present
+in the inventory): Cartwall page, Custom 1-3. Containers are not a
+separate `Type` value, but recognizable via the `Class` field — see the
+⚠️ note there, an easily overlooked trap for any type-based logic. So
+that items with a not-yet-captured type still display correctly, the
+type dropdown in `ItemEditor.jsx` shows the raw value as an extra option
+for an unknown value, instead of staying empty or crashing.
 
-**`getAttributeKeys` — aus dem Config-Schema, nicht aus Item-Daten:**
-Anders als `sqlRepository.js` (das die tatsächlich beobachteten
-Attribut-Werte aus den Items aggregiert) liest `apiRepository.js`s
-`getAttributeKeys()` das Attribut-**Schema** aus `/api/v1/config`s
-`StandardAttributes`-XML-Feld (siehe `docs/MAIRLISTDB-API.md`). `values`
-ist deshalb nur für `Kind="DropDown"`/`"Check"`-Attribute gefüllt
-(deren erlaubte Werte im Schema stehen); Freitext-Attribute liefern
-`values: []`, auch wenn im Bestand bereits Werte dafür existieren. Das
-Parsing nutzt einen gezielten regulären Ausdruck statt eines
-XML-Parsers (keine XML-Dependency im Projekt, Format eng umrissen).
+**`getAttributeKeys` — from the config schema, not from item data:**
+Unlike `sqlRepository.js` (which aggregates the actually observed
+attribute values from the items), `apiRepository.js`'s
+`getAttributeKeys()` reads the attribute **schema** from
+`/api/v1/config`'s `StandardAttributes` XML field (see
+`docs/MAIRLISTDB-API.md`). `values` is therefore only populated for
+`Kind="DropDown"`/`"Check"` attributes (whose allowed values are in the
+schema); free-text attributes return `values: []`, even if values for
+them already exist in the inventory. Parsing uses a targeted regular
+expression instead of an XML parser (no XML dependency in the project,
+tightly scoped format).
 
-**`getStorages` — verifiziert:** `GET /api/v1/storages?station=1`
-existiert doch, live gegen die Produktivinstanz getestet (2 Storages),
-Response vollständig dokumentiert in `docs/MAIRLISTDB-API.md`: ein
-`{value, Count}`-Wrapper wie bei `/folders` (kein rohes Array), Einträge
-mit `ID`/`Name`/`Description`/`DefaultLocation`/`ItemCount`.
-`getStorages()`/`mapApiStorageToInternal()` mappen das auf
-`{ id, name, location }`, analog zu `sqlRepository.js`s Shape
-(`location` kommt aus `DefaultLocation`).
+**`getStorages` — verified:** `GET /api/v1/storages?station=1` does
+exist, tested live against the production instance (2 storages),
+response fully documented in `docs/MAIRLISTDB-API.md`: a
+`{value, Count}` wrapper like `/folders` (not a raw array), entries with
+`ID`/`Name`/`Description`/`DefaultLocation`/`ItemCount`.
+`getStorages()`/`mapApiStorageToInternal()` map this to
+`{ id, name, location }`, analogous to `sqlRepository.js`'s shape
+(`location` comes from `DefaultLocation`).
 
-**Ordner-CRUD — verifiziert:** `POST`/`PUT`/`DELETE /api/v1/folders...`
-existieren, live gegen die Produktivinstanz getestet (siehe
-`server/scripts/smoke-writes-api.js`, Abschnitt "folder CRUD"). `PUT`
-dient sowohl zum Umbenennen als auch zum Verschieben — es wird immer der
-komplette Body (`Name` + `Parent`) gesendet, `renameFolder`/`moveFolder`
-holen sich dafür zunächst das jeweils andere, unveränderte Feld über
-`getFolderById()`. Response von `POST` ist das neu erzeugte Objekt inkl.
-`ID`; `PUT`/`DELETE` antworten mit `null`, weshalb `renameFolder`/
-`moveFolder` danach erneut per `getFolderById()` lesen, um das
-aktualisierte Objekt zurückzugeben. Top-Level-Parent ist der String
-`"root"` (wie bei `getFolders()`), intern als `parentId: null`
-repräsentiert — `parentIdToApi()` konvertiert beim Schreiben zurück.
-Verhalten bei nicht-leeren Ordnern (Löschen mit Unterordnern/Items) ist
-nicht verifiziert.
+**Folder CRUD — verified:** `POST`/`PUT`/`DELETE /api/v1/folders...`
+exist, tested live against the production instance (see
+`server/scripts/smoke-writes-api.js`, section "folder CRUD"). `PUT`
+serves both renaming and moving — the complete body (`Name` + `Parent`)
+is always sent; `renameFolder`/`moveFolder` first fetch the other,
+unchanged field via `getFolderById()`. `POST`'s response is the newly
+created object incl. `ID`; `PUT`/`DELETE` respond with `null`, which is
+why `renameFolder`/`moveFolder` re-read via `getFolderById()` afterward
+to return the updated object. The top-level parent is the string
+`"root"` (as with `getFolders()`), represented internally as
+`parentId: null` — `parentIdToApi()` converts back when writing.
+Behavior for non-empty folders (deleting with subfolders/items) is not
+verified.
 
-**`createItem`/`deleteItem` — verifiziert:** `POST`/`DELETE
-/api/v1/items...` existieren, live gegen die Produktivinstanz getestet
-(siehe `server/scripts/smoke-writes-api.js`). `POST` verlangt `Class`
-und `Filename` als Pflichtfelder (fehlt eines, liefert der Server einen
-konkreten Fehlertext) und antwortet mit einem nackten JSON-String (der
-neuen Item-ID), nicht mit einem Objekt — `createItem()` lädt das neue
-Item deshalb im Anschluss per `getItemById()` nach, analog zu
-`updateItem()`. `DELETE` antwortet mit `null`.
+**`createItem`/`deleteItem` — verified:** `POST`/`DELETE
+/api/v1/items...` exist, tested live against the production instance
+(see `server/scripts/smoke-writes-api.js`). `POST` requires `Class` and
+`Filename` as mandatory fields (if one is missing, the server returns a
+specific error text) and responds with a bare JSON string (the new item
+ID), not an object — `createItem()` therefore loads the new item
+afterward via `getItemById()`, analogous to `updateItem()`. `DELETE`
+responds with `null`.
 
-**Ordner-Zuordnung beim Anlegen — umgesetzt:** Das Body-Format von
-`POST /api/v1/folders/<id>/items` ist per Wireshark-Mitschnitt des echten
-Clients entschlüsselt und damit nicht länger ein offener Punkt: der
-Endpunkt erwartet `application/x-www-form-urlencoded` mit nacktem
-`add`-Flag und dem JSON-Array der Item-IDs im `$doc`-Parameter
-(`add&station=1&$doc=["<id>"]`) — nicht `application/json`, was die
-bisherige Fehlermeldung `Invalid operation` erklärt (Details:
-`docs/MAIRLISTDB-API.md`, Abschnitt "POST-Endpunkte (form-urlencoded)").
-`apiRepository.js` setzt das als `assignItemsToFolder(folderId, itemIds)`
-um — dieselbe `apiRequest()`-Route wie alle anderen Aufrufe, nur mit
-form-urlencodiertem Body, damit Concurrency-Limit und Retry-Logik auch
-hier greifen. `createItem()` ruft das nach dem `POST /items` auf, sobald
-eine `folderId` mitgegeben wurde; scheitert nur die Zuordnung, wird das
-bereits angelegte Item trotzdem zurückgegeben und der Fehler geloggt
-(sonst bekäme der Aufrufer das Item nie zu sehen und es bliebe verwaist
-zurück).
+**Folder assignment on creation — implemented:** The body format of
+`POST /api/v1/folders/<id>/items` has been decoded via a Wireshark
+capture of the real client and is thus no longer an open item: the
+endpoint expects `application/x-www-form-urlencoded` with a bare `add`
+flag and the JSON array of item IDs in the `$doc` parameter
+(`add&station=1&$doc=["<id>"]`) — not `application/json`, which explains
+the previous `Invalid operation` error message (details:
+`docs/MAIRLISTDB-API.md`, section "POST endpoints (form-urlencoded)").
+`apiRepository.js` implements this as `assignItemsToFolder(folderId, itemIds)`
+— the same `apiRequest()` route as all other calls, just with a
+form-urlencoded body, so the concurrency limit and retry logic also
+apply here. `createItem()` calls this after `POST /items` as soon as a
+`folderId` was provided; if only the assignment fails, the already
+created item is still returned and the error is logged (otherwise the
+caller would never see the item and it would remain orphaned).
 
-Inzwischen sind auch die beiden übrigen Operations-Flags mitgeschnitten
-und damit verifiziert: `movefrom=<quellId>` (verschiebt aus einem
-Quellordner in diesen) und `delete` (entfernt aus diesem Ordner, ohne die
-Items zu löschen). Dazu kommt `PUT /api/v1/items/<id>/folders` mit
-`station=1&$doc=["5","189","7"]`, das die **komplette**
-Ordner-Zugehörigkeit eines Items auf einmal setzt.
+The two remaining operation flags have since also been captured and thus
+verified: `movefrom=<sourceId>` (moves from a source folder into this
+one) and `delete` (removes from this folder without deleting the items).
+Additionally, `PUT /api/v1/items/<id>/folders` with
+`station=1&$doc=["5","189","7"]` sets an item's **complete** folder
+membership at once.
 
-Umgesetzt als `removeItemFromFolder(folderId, itemIds)` (`delete`),
-`setItemFolders(itemId, folderIds)` (der PUT-Endpunkt) und
-`moveItemToFolder(id, folderId)`. Letzteres nutzt bewusst
-`setItemFolders()` statt `movefrom`: Das SQL-Pendant ersetzt die
-Zuordnung komplett (`writeFolder()` löscht alle `item_folders`-Zeilen des
-Items), und `movefrom` verschiebt nur aus *einem* Quellordner — läge das
-Item in mehreren, bliebe es in den übrigen liegen. Der PUT-Endpunkt
-erledigt das in einem einzigen, idempotenten Request, ohne Zwischenzustand.
+Implemented as `removeItemFromFolder(folderId, itemIds)` (`delete`),
+`setItemFolders(itemId, folderIds)` (the PUT endpoint), and
+`moveItemToFolder(id, folderId)`. The latter deliberately uses
+`setItemFolders()` instead of `movefrom`: the SQL counterpart replaces
+the assignment completely (`writeFolder()` deletes all of the item's
+`item_folders` rows), and `movefrom` only moves out of *one* source
+folder — if the item were in several, it would remain in the rest. The
+PUT endpoint handles this in a single, idempotent request, without an
+intermediate state.
 
-**`getDashboardStats`/`getTodayPlaylist`:** `getTodayPlaylist()` ist
-voll funktionsfähig (baut auf den bereits verifizierten
-`getPlaylistsByDate`/`getPlaylistById` auf). `getDashboardStats()`
-liefert jetzt echte Werte für alle vier Felder: `totalFolders` (aus
-`getFolders().length`), `totalUsers` (aus der von `DATA_SOURCE`
-unabhängigen `webAuthDb`), `totalStorages` (Länge der
-`/api/v1/storages`-Liste) und `totalItems` (Summe aller `ItemCount`-Werte
-derselben Liste — kein Scan aller ~155 Ordner nötig).
+**`getDashboardStats`/`getTodayPlaylist`:** `getTodayPlaylist()` is fully
+functional (builds on the already verified
+`getPlaylistsByDate`/`getPlaylistById`). `getDashboardStats()` now
+returns real values for all four fields: `totalFolders` (from
+`getFolders().length`), `totalUsers` (from `webAuthDb`, which is
+independent of `DATA_SOURCE`), `totalStorages` (length of the
+`/api/v1/storages` list), and `totalItems` (sum of all `ItemCount`
+values of the same list — no scan of all ~155 folders needed).
 
-**`getItems(filters)` — nur mit `folderId`:** Die API hat keinen
-Endpunkt für eine ungefilterte Item-Liste über die gesamte Bibliothek
-(`GET /api/v1/items` verlangt immer `folder=<id>` oder `ids=<id,...>`,
-siehe `docs/MAIRLISTDB-API.md`). `apiRepository.js`s `getItems` liefert
-deshalb nur mit `folderId` echte Daten (baut auf `getItemsByFolder` auf,
-`type`/`artist`/`storageId`/`attributeKey`+`attributeValue` werden
-clientseitig nachgefiltert); ohne `folderId` liefert es `[]`.
+**`getItems(filters)` — only with `folderId`:** The API has no endpoint
+for an unfiltered item list across the entire library
+(`GET /api/v1/items` always requires `folder=<id>` or `ids=<id,...>`,
+see `docs/MAIRLISTDB-API.md`). `apiRepository.js`'s `getItems` therefore
+only returns real data with `folderId` (builds on `getItemsByFolder`,
+`type`/`artist`/`storageId`/`attributeKey`+`attributeValue` are filtered
+client-side afterward); without `folderId` it returns `[]`.
 
-**Neu erschlossen durch den zweiten Wireshark-Mitschnitt (07.09.2026)** —
-alles drei ist verifiziert und damit umsetzbar, aber noch **nicht**
-implementiert:
+**Newly uncovered via the second Wireshark capture (2026-09-07)** — all
+three are verified and thus implementable, but **not yet** implemented:
 
-- **Item-Suche (`searchItems`):** `GET /api/v1/items?search=<begriff>&
-  fields=All&limit=50&station=1` liefert Treffer im gleichen erweiterten
-  Format wie `?folder=<id>`. Der Stub war bisher leer, weil kein
-  Such-Endpunkt bekannt war — das gilt nicht mehr. Damit fällt auch die
-  bisherige Annahme, `GET /api/v1/items` verlange immer `folder=` oder
-  `ids=`. **Inzwischen implementiert** (siehe unten); noch offen:
-  Pagination und die weiteren `fields`-Werte (nur `All` ist verifiziert,
-  eine feldbasierte Einschränkung wird deshalb clientseitig nachgebildet).
-- **Cover (`IconData`):** Das Cover steckt im Item-Feld `IconData` als
-  base64-kodiertes JPEG — **lesbar** über `?icons=true` bzw. im
-  `?folder=`-Format und **schreibbar** über den normalen
-  `PUT /api/v1/items/<id>`. Im api-Modus wäre das Cover damit voll
-  anbindbar; `mapApiItemToInternal()`/`updateItem()` werten `IconData`
-  bisher nicht aus. (Das ist unabhängig vom gleichnamigen offenen TODO in
-  `sqlRepository.js`, wo `cover` aus `items.xmldata` geparst werden
-  müsste — zwei verschiedene Baustellen.)
-- **Restrictions schreiben:** `PUT /api/v1/items/<id>/restrictions`
+- **Item search (`searchItems`):** `GET /api/v1/items?search=<term>&
+  fields=All&limit=50&station=1` returns hits in the same extended
+  format as `?folder=<id>`. The stub used to be empty because no search
+  endpoint was known — that is no longer true. This also invalidates the
+  previous assumption that `GET /api/v1/items` always requires `folder=`
+  or `ids=`. **Meanwhile implemented** (see below); still open:
+  pagination and the other `fields` values (only `All` is verified, so a
+  field-based restriction is emulated client-side).
+- **Cover (`IconData`):** the cover sits in the item field `IconData` as
+  a base64-encoded JPEG — **readable** via `?icons=true` or in the
+  `?folder=` format, and **writable** via the normal `PUT /api/v1/items/<id>`.
+  In api mode the cover could thus be fully connected;
+  `mapApiItemToInternal()`/`updateItem()` don't evaluate `IconData` yet.
+  (This is independent of the same-named open TODO in
+  `sqlRepository.js`, where `cover` would need to be parsed from
+  `items.xmldata` — two different areas of work.)
+- **Writing restrictions:** `PUT /api/v1/items/<id>/restrictions`
   (form-urlencoded, `$doc={"NotBefore":…,"NotAfter":…,"Hours":"<168
-  Bit>"}`) ist verifiziert; gelesen werden sie über
-  `getItemRestrictions()` schon heute. Der `Hours`-Bitstring bildet 7
-  Tage × 24 Stunden ab (`1` = erlaubt); die genaue Bit-Reihenfolge ist
-  vermutlich Mo 0 Uhr → So 23 Uhr, aber **noch gegen die Client-Anzeige
-  zu prüfen**, bevor darauf ein Editor gebaut wird.
+  bit>"}`) is verified; they are already readable today via
+  `getItemRestrictions()`. The `Hours` bit string maps 7 days × 24 hours
+  (`1` = allowed); the exact bit order is presumably Mon 0:00 → Sun
+  23:00, but **still needs to be checked against the client display**
+  before an editor is built on top of it.
 
-Ebenfalls neu dokumentiert, ohne Handlungsbedarf: der offizielle Client
-nutzt auch bei `PUT /items/<id>` und beim Playlist-PUT form-urlencoded
-mit `$doc` (unsere JSON-Variante funktioniert weiterhin), und beim
-Playlist-PUT schickt er `BaseTime` statt `VersionInfo` — `VersionInfo`
-ist beim Schreiben also offenbar optional. Details in
+Also newly documented, no action needed: the official client also uses
+form-urlencoded with `$doc` for `PUT /items/<id>` and the playlist PUT
+(our JSON variant still works), and for the playlist PUT it sends
+`BaseTime` instead of `VersionInfo` — `VersionInfo` is apparently
+optional when writing. Details in
 [`docs/MAIRLISTDB-API.md`](MAIRLISTDB-API.md).
 
-**Container-Schreibformate jetzt bekannt (dritter Wireshark-Mitschnitt)
-— nur dokumentiert, noch nicht implementiert:** Wie sich alle vier
-Container-Arten (Hook-Container, automatischer Hook-Container,
-Regionen-Container, Nachrichten-Container) über die normalen
-`POST`/`PUT /api/v1/items...`-Endpunkte anlegen und befüllen lassen, ist
-jetzt vollständig verifiziert (Details:
-[`docs/MAIRLISTDB-API.md` – Container erstellen und
-bearbeiten](MAIRLISTDB-API.md#container-erstellen-und-bearbeiten--verifiziert)).
-Das ist die Grundlage für eine mögliche künftige Container-
-Bearbeitungsfunktion im Frontend (Playlist zeigt Container-Inhalte
-bisher nur schreibgeschützt an, siehe "Container-Items" oben) — bewusst
-noch nicht umgesetzt. Zwei Fallstricke dabei: der Nachrichten-Container
-hat `Type:"News"` statt `Type:"Container"` auch beim Schreiben (nicht
-nur beim Lesen), und Hook-Container (`Playlist.Items`) und
-Nachrichten-Container (`Items` mit `Role`-Feld) verwenden zwei
-unterschiedliche, leicht verwechselbare Inhalts-Feldnamen. Offen bleibt
-der eigentliche Nachrichteninhalt (nicht die Opener/Bumper/Closer-
-Verpackung) sowie dass externe URLs als `Filename` nicht funktionieren.
+**Container write formats now known (third Wireshark capture) — only
+documented, not yet implemented:** How all four container types (hook
+container, automatic hook container, region container, news container)
+can be created and populated via the normal `POST`/`PUT /api/v1/items...`
+endpoints is now fully verified (details:
+[`docs/MAIRLISTDB-API.md` – Creating and editing
+containers](MAIRLISTDB-API.md#creating-and-editing-containers--verified)).
+This is the foundation for a possible future container-editing feature
+in the frontend (the playlist currently only shows container content
+read-only, see "Container items" above) — deliberately not implemented
+yet. Two pitfalls: the news container has `Type:"News"` instead of
+`Type:"Container"` when writing too (not just reading), and hook
+containers (`Playlist.Items`) and news containers (`Items` with a `Role`
+field) use two different, easily confused content field names. Still
+open: the actual news content (not the opener/bumper/closer wrapping),
+and that external URLs as `Filename` don't work.
 
-**Bewusst noch nicht implementiert** (werfen einen klaren "im
-api-Modus noch nicht verfügbar"-Fehler statt zu crashen oder falsche
-Daten zu liefern):
+**Deliberately not yet implemented** (throw a clear "not yet available
+in api mode" error instead of crashing or returning wrong data):
 
-| Funktion / Bereich | Status |
+| Function / area | Status |
 |---|---|
-| Storage-Verwaltung: `createStorage`, `updateStorage`, `deleteStorage` | ⬜ |
+| Storage management: `createStorage`, `updateStorage`, `deleteStorage` | ⬜ |
 | `getAttributeDefinitions`, `getCuePoints` | ⬜ |
 | `uploadFile`, `resolveAudioPath` | ⬜ |
-| `getLogs`, `getRecentLogs` | ⬜ kein Logs-Endpunkt gefunden, liefern `[]` statt Fehler (siehe oben) |
+| `getLogs`, `getRecentLogs` | ⬜ no logs endpoint found, return `[]` instead of an error (see above) |
 
 ---
 
-## 📚 Bibliothek
+## 📚 Library
 
-### Library Tree (linke Navigation)
+### Library tree (left navigation)
 
-Der echte Client hat sieben Wurzelknoten, wir haben bisher nur einen:
+The real client has seven root nodes, we currently only have one:
 
-| Knoten | Funktion | Status |
+| Node | Function | Status |
 |---|---|---|
-| Folders | virtuelle Ordner mit Unterordnern | ✅ |
-| Artists | auto-generierte Liste aller Interpreten, Klick filtert | ✅ |
-| Types | Filter nach Item-Typ | ✅ |
-| Attributes | alle Attribut-Keys, aufklappbar zu Werten, Klick filtert nach Key+Wert | ✅ |
-| Storages | Filter nach Storage | ✅ |
-| Advertising | Schnellfilter Werbung, optional nach Kampagne | 🔽 |
-| Everything | komplette Item-Liste | ✅ |
+| Folders | virtual folders with subfolders | ✅ |
+| Artists | auto-generated list of all artists, click filters | ✅ |
+| Types | filter by item type | ✅ |
+| Attributes | all attribute keys, expandable to values, click filters by key+value | ✅ |
+| Storages | filter by storage | ✅ |
+| Advertising | quick filter for ads, optionally by campaign | 🔽 |
+| Everything | complete item list | ✅ |
 
-### Suche
+### Search
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| Einfache Suche über Titel/Artist/Kommentar | ✅ |
-| Umschalter: gesamte Bibliothek vs. nur aktueller Ordner/View | ✅ |
-| Suche auf bestimmte Felder einschränken (nur Artist, nur Titel …) | ✅ |
-| Volltextsuche an/aus (aus = nur Wortanfang, nutzt SQL-Indizes, schneller) | ✅ |
-| Advanced Search: mehrere Begriffe UND-verknüpft über alle Felder | ⬜ |
+| Simple search across title/artist/comment | ✅ |
+| Toggle: entire library vs. only the current folder/view | ✅ |
+| Restrict search to specific fields (artist only, title only, ...) | ✅ |
+| Full-text search on/off (off = word-start only, uses SQL indexes, faster) | ✅ |
+| Advanced search: multiple terms AND-combined across all fields | ⬜ |
 
-Im **api-Modus** ist die Suche jetzt verfügbar über
-`GET /api/v1/items?search=…&fields=All&limit=50` — siehe
-[API-basierte Datenquelle](#-api-basierte-datenquelle-mairlistdb-server).
-Die Einschränkung auf bestimmte Felder (nur Artist, nur Titel …) wird
-dabei clientseitig nachgebildet, da die API selbst nur `fields=All`
-unterstützt.
+In **api mode**, search is now available via
+`GET /api/v1/items?search=…&fields=All&limit=50` — see
+[API-based data source](#-api-based-data-source-mairlistdb-server).
+The restriction to specific fields (artist only, title only, ...) is
+emulated client-side, since the API itself only supports `fields=All`.
 
-### Item-Liste
+### Item list
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| Spalten, Sortierung, Mehrfachauswahl | ✅ |
-| Minutenanzeige der Länge | ✅ |
-| Konfigurierbare Spalten: umsortieren, ein-/ausblenden, Standard-Attribute als eigene Spalten | ⬜ |
-| Refresh (F5 im Original) | ✅ |
+| Columns, sorting, multi-select | ✅ |
+| Minute display of length | ✅ |
+| Configurable columns: reorder, show/hide, standard attributes as their own columns | ⬜ |
+| Refresh (F5 in the original) | ✅ |
 
-### Ordner und Items verwalten
+### Managing folders and items
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| Neues Element anlegen (alle Typen) | ✅ |
-| Element bearbeiten, löschen | ✅ |
-| Virtuelle Ordner anlegen, umbenennen, verschieben, löschen | ✅ |
-| Items zwischen Ordnern verschieben | ✅ (Drag and Drop) |
-| Ordner in Ordner verschieben per Drag and Drop, mit Zirkularitätsprüfung | ✅ |
-| Dummy → File: Audio für Dummy-Item nachträglich hochladen | ❌ nicht geplant |
-| File → Dummy: Audiodatei entfernen, Metadaten bleiben | ❌ nicht geplant |
-| Replace audio file: Datei tauschen, Metadaten bleiben | ❌ nicht geplant |
+| Create new element (all types) | ✅ |
+| Edit, delete element | ✅ |
+| Create, rename, move, delete virtual folders | ✅ |
+| Move items between folders | ✅ (drag and drop) |
+| Move folders into folders via drag and drop, with circularity check | ✅ |
+| Dummy → File: upload audio for a dummy item afterward | ❌ not planned |
+| File → Dummy: remove audio file, metadata stays | ❌ not planned |
+| Replace audio file: swap file, metadata stays | ❌ not planned |
 
 ---
 
-## 🧱 Element-Typen
+## 🧱 Element types
 
-mAirList kennt technisch eine feste Basis-Typliste. Feingliederung (z.B. Dropper vs. Station ID vs. Promo) erfolgt über Ordner und Attribute, nicht über eigene Typen. Im Frontend werden die Typen dynamisch aus der DB geladen (`getItemTypes`), nicht mehr hardcoded.
+mAirList technically has a fixed base type list. Finer distinctions
+(e.g. dropper vs. station ID vs. promo) happen via folders and
+attributes, not via separate types. In the frontend, types are now
+loaded dynamically from the DB (`getItemTypes`), no longer hardcoded.
 
-| Typ | Beschreibung | Status |
+| Type | Description | Status |
 |---|---|---|
-| Music | Regulärer Musiktitel | ✅ |
-| Jingle | Kurze Kennung, Soundeffekt (auch Dropper, Station ID, Promo, Trailer) | ✅ |
-| Advertising | Werbespot, kommerzieller Einschub | ✅ |
-| News | Nachrichtenbeitrag, Nachrichten-Enhancer | ⬜ |
-| Weather | Wetterbericht, Wetterbett | ⬜ |
-| Traffic | Verkehrsmeldung | ⬜ |
-| Moderation | Gesprochener Beitrag, Voice Track | ⬜ |
-| Bed | Bett, Unterlegmusik für Wortbeiträge | ⬜ |
-| Stream | Live-Stream, externe Audio-Quelle (z.B. Webradio-Zuspielung) | ⬜ |
-| Container (Hook) | zufälliger Hook aus einem Pool | ✅ |
-| Container (Regio) | regionale Auseinanderschaltung | ✅ |
-| Container (Nachrichten) | lädt zur vollen Stunde die News | ✅ |
-| Container (generisch) | sonstiger dynamischer Container | ✅ |
-| Dummy | Platzhalter, nicht abspielbar, kann Text/Notizen enthalten | ⬜ |
-| Silence | Stille, definierte Pause | ⬜ |
+| Music | Regular music track | ✅ |
+| Jingle | Short ID, sound effect (also dropper, station ID, promo, trailer) | ✅ |
+| Advertising | Ad spot, commercial break | ✅ |
+| News | News piece, news enhancer | ⬜ |
+| Weather | Weather report, weather bed | ⬜ |
+| Traffic | Traffic report | ⬜ |
+| Moderation | Spoken piece, voice track | ⬜ |
+| Bed | Bed, underscore music for spoken pieces | ⬜ |
+| Stream | Live stream, external audio source (e.g. webradio feed) | ⬜ |
+| Container (hook) | random hook from a pool | ✅ |
+| Container (region) | regional split | ✅ |
+| Container (news) | loads the news on the hour | ✅ |
+| Container (generic) | other dynamic container | ✅ |
+| Dummy | placeholder, not playable, can hold text/notes | ⬜ |
+| Silence | silence, defined pause | ⬜ |
 
 ---
 
@@ -484,236 +470,241 @@ mAirList kennt technisch eine feste Basis-Typliste. Feingliederung (z.B. Dropper
 
 | Tab | Status |
 |---|---|
-| Allgemein (Titel, Interpret, Typ, Länge, IDs, Kommentar, Farbe, Cover) | ✅ (Cover im api-Modus noch nicht angebunden — Feld `IconData`, les- und schreibbar, siehe API-Abschnitt) |
-| Wiedergabe (Gain, Normalisieren als Mock, Segue-Modus) | ✅ |
-| Attribute (vordefinierte Felder: Text kurz/lang, Zahl, Checkbox, Auswahl, Mehrfachauswahl) | ✅ |
-| Sendeplanung (Fix-Zeiten, Rotations-Regeln) | ⬜ |
-| Verlauf (wann lief das Item) | ✅ |
-| Cue Editor | ✅ siehe unten |
+| General (title, artist, type, length, IDs, comment, color, cover) | ✅ (cover not yet connected in api mode — field `IconData`, readable and writable, see the API section) |
+| Playback (gain, normalize as mock, segue mode) | ✅ |
+| Attributes (predefined fields: short/long text, number, checkbox, single-select, multi-select) | ✅ |
+| Scheduling (fixed times, rotation rules) | ⬜ |
+| History (when the item played) | ✅ |
+| Cue Editor | ✅ see below |
 
 ### Cue Editor
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| Alle 17 Cue-Punkte als Karten | ✅ |
-| Marker in der Waveform: farbig, mit Label, an korrekter Zeitposition, live-update | ✅ |
-| Zoom mit korrekt mitwandernden Markern | ✅ |
-| Sortierung nach Wichtigkeit (`DEFAULT_CUE_PRIORITY`), vorbereitet für Benutzereinstellung | ✅ |
-| Visuelle Trennung wichtige/weitere Marker | ✅ |
-| Echte Audio-Wiedergabe und echte Waveform aus der Audiodatei (wavesurfer.js, Audio-Streaming via HTTP, Range-Request Support, Fallback auf synthetische Waveform) | ✅ |
-| Waveform/Marker-Sync: Marker/Zeitachse und wavesurfer nutzen dieselbe echte Audiodauer (`audioDuration` state), Overlay (Marker, Hook/Fade/Loop-Bänder, Ticks) folgt wavesurfers Scroll-Position beim Zoomen, Klick-zum-Springen nutzt wavesurfers eigenes Koordinatensystem | ✅ |
-| Zoom-Verhalten: kein Auto-Zoom mehr beim Abspielen, Minimum-Zoom zeigt immer die komplette Waveform (fit to width) | ✅ |
-| Konfigurierbare Cue-Priorität (`DEFAULT_CUE_PRIORITY`), vorbereitet für Benutzereinstellungen | ✅ |
-| Auto Cue: Cue In / Fade Out / Cue Out automatisch aus Audiopegel schätzen | ⬜ |
+| All 17 cue points as cards | ✅ |
+| Markers in the waveform: colored, labeled, at the correct time position, live-updating | ✅ |
+| Zoom with correctly tracking markers | ✅ |
+| Sorting by importance (`DEFAULT_CUE_PRIORITY`), prepared for user settings | ✅ |
+| Visual separation of important vs. other markers | ✅ |
+| Real audio playback and a real waveform from the audio file (wavesurfer.js, audio streaming via HTTP, range-request support, fallback to a synthetic waveform) | ✅ |
+| Waveform/marker sync: marker/timeline and wavesurfer use the same real audio duration (`audioDuration` state), overlay (markers, hook/fade/loop bands, ticks) follows wavesurfer's scroll position when zooming, click-to-jump uses wavesurfer's own coordinate system | ✅ |
+| Zoom behavior: no more auto-zoom during playback, minimum zoom always shows the entire waveform (fit to width) | ✅ |
+| Configurable cue priority (`DEFAULT_CUE_PRIORITY`), prepared for user settings | ✅ |
+| Auto cue: automatically estimate cue in / fade out / cue out from audio level | ⬜ |
 
 ---
 
-## 📥 Import und Storage
+## 📥 Import and storage
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| Datei-Upload über den Browser, Item wird angelegt | ✅ |
-| Import-Optionen: Zielordner wählen, Typ setzen, Auto Cue deaktivierbar, Ordnerstruktur übernehmen | ⬜ |
-| Storages anlegen, bearbeiten, entfernen (Name + Speicherort) | ⬜ |
-| Synchronisation: Storage scannen, neue Dateien links / fehlende rechts | ❌ nicht geplant |
-| Umbenannte Dateien reparieren: Join Selected Entries, Auto Repair | ❌ nicht geplant |
-| Hinweis aus der Doku: Dateien nach Import nie umbenennen/verschieben, mAirList speichert Storage-ID + relativen Pfad | 📌 Regel, gilt auch für uns |
-| Audio-Streaming via HTTP: `GET /api/items/:id/audio` mit Range-Request Support (206 Partial Content), `AUDIO_BASE_DIR` Umgebungsvariable für lokale Entwicklung | ✅ |
+| File upload through the browser, item is created | ✅ |
+| Import options: choose target folder, set type, disable auto cue, keep folder structure | ⬜ |
+| Create, edit, remove storages (name + location) | ⬜ |
+| Synchronization: scan storage, new files on the left / missing on the right | ❌ not planned |
+| Repair renamed files: Join Selected Entries, Auto Repair | ❌ not planned |
+| Note from the docs: never rename/move files after import, mAirList stores storage ID + relative path | 📌 rule, applies to us too |
+| Audio streaming via HTTP: `GET /api/items/:id/audio` with range-request support (206 Partial Content), `AUDIO_BASE_DIR` environment variable for local development | ✅ |
 
 ---
 
-## 🔀 Playlist und Sendeplan
+## 🔀 Playlist and schedule
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| Stundenbasierte Playlists: Kalender → Stunde → Einträge | ✅ |
-| mAirList Layout: Toolbar, Tabelle, Datenbanksuche unten | ✅ |
-| Alle 24 Stunden sichtbar, auch leere; Einfügen in leere Stunde | ✅ |
-| Einfügen, Löschen, Drag-and-Drop-Umsortierung mit Startzeit-Neuberechnung | ✅ |
-| Doppelklick öffnet Item Editor, Kontextmenü | ✅ |
-| **Lokal vs. global:** Änderungen aus der Playlist sind flüchtige Overrides nur für diese Stunde, expliziter Button schreibt in die DB (wie im Original: "volatile") | ✅ |
-| Kontextmenü pro Eintrag: Nach oben, Nach unten, Bearbeiten, Löschen | ✅ |
-| Strg+Klick Mehrfachauswahl für Mix Editor Aufruf | ✅ |
-| Playlist-Overrides: Änderungen aus dem Mix Editor und Item Editor werden als volatile Overrides pro Playlist-Eintrag gespeichert (`xmldata` Feld in der echten DB), getrennt vom globalen Item-Stand | ✅ |
-| Container-Inhalt aufklappbar anzeigen (Sub-Items) | ✅ |
-| Hook-Container-Inhalt bearbeiten (hinzufügen/entfernen/umsortieren) | ✅ (nur api-Modus) |
-| Regionen-Container-Inhalt bearbeiten (pro Region) | ✅ (nur api-Modus) |
-| Nachrichten-Container-Inhalt bearbeiten | ⬜ |
-| Fix-Zeiten: Item startet zur festen Uhrzeit | ⬜ |
-| Checkpoint: "Prevent auto float around this item" (z.B. volle Stunde) | ⬜ |
-| Konflikt-Erkennung: Warnung wenn zwei Nutzer dieselbe Playlist bearbeiten | ⬜ Phase Mehrbenutzer |
-| Playlist-Import aus Dritt-Software (Musicmaster etc.) | ❌ nicht geplant |
-| Mehrere Stationen mit getrennten Playlists | 🔽 |
-| Mehrere Stationen mit mehreren Playlists pro Station | 🔽 |
+| Hour-based playlists: calendar → hour → entries | ✅ |
+| mAirList layout: toolbar, table, database search below | ✅ |
+| All 24 hours visible, including empty ones; insert into an empty hour | ✅ |
+| Insert, delete, drag-and-drop reordering with start-time recalculation | ✅ |
+| Double-click opens the item editor, context menu | ✅ |
+| **Local vs. global:** changes made from the playlist are volatile overrides for that hour only, an explicit button writes to the DB (as in the original: "volatile") | ✅ |
+| Context menu per entry: move up, move down, edit, delete | ✅ |
+| Ctrl+click multi-select for mix editor invocation | ✅ |
+| Playlist overrides: changes from the mix editor and item editor are saved as volatile overrides per playlist entry (`xmldata` field in the real DB), separate from the global item state | ✅ |
+| Expandable container content display (sub-items) | ✅ |
+| Edit hook-container content (add/remove/reorder) | ✅ (api mode only) |
+| Edit region-container content (per region) | ✅ (api mode only) |
+| Edit news-container content | ⬜ |
+| Fixed times: item starts at a fixed clock time | ⬜ |
+| Checkpoint: "Prevent auto float around this item" (e.g. top of hour) | ⬜ |
+| Conflict detection: warning when two users edit the same playlist | ⬜ multi-user phase |
+| Playlist import from third-party software (Musicmaster etc.) | ❌ not planned |
+| Multiple stations with separate playlists | 🔽 |
+| Multiple stations with multiple playlists per station | 🔽 |
 
 ---
 
 ## 🎛️ Mix Editor
 
-Der Mix Editor ist im Original sowohl im Playout als auch im DB Client verfügbar. Kernfunktionen laut Doku, Release Notes und Forum:
+In the original, the mix editor is available both in playout and in the
+DB client. Core functions per docs, release notes, and forum:
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| Timeline-Ansicht mehrerer aufeinanderfolgender Playlist-Items | ✅ |
-| Aufruf aus der Playlist per Strg+Klick Mehrfachauswahl | ✅ |
-| Übergänge verschieben: Song nach links/rechts ziehen ändert StartNext, Clamp auf [cueIn, duration], keine Gaps | ✅ |
-| Cue-Punkte direkt in der Timeline anfassen und verschieben | ✅ |
-| Fokus-Modus: ±10s um den Übergangspunkt abspielen | ✅ |
-| Ergebnis als Playlist-Override oder global in DB speichern | ✅ |
-| **Volume-Hüllkurven** (Envelopes): freie Lautstärkekurven pro Item, nicht nur Fade-Punkte | ⬜ bleibt offen |
-| Multi-Track Container bearbeiten (frei arrangierte Items) | ❌ nicht geplant |
+| Timeline view of several consecutive playlist items | ✅ |
+| Invoked from the playlist via Ctrl+click multi-select | ✅ |
+| Move transitions: dragging a song left/right changes StartNext, clamped to [cueIn, duration], no gaps | ✅ |
+| Grab and move cue points directly in the timeline | ✅ |
+| Focus mode: play ±10s around the transition point | ✅ |
+| Save the result as a playlist override or globally to the DB | ✅ |
+| **Volume envelopes:** free-form volume curves per item, not just fade points | ⬜ remains open |
+| Edit multi-track containers (freely arranged items) | ❌ not planned |
 
 ---
 
 ## 🎙️ Voice Tracking
 
-Der VT Recorder ist im Original ein eigenes Fenster im DB Client. Ablauf laut Doku und Forum:
+In the original, the VT recorder is a separate window in the DB client.
+Workflow per docs and forum:
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| VT Recorder: Player A (Ende des vorherigen Elements) und Player B (Anfang des nächsten) hörbar | ⬜ |
-| Aufnahme-Sequenz: Preroll → Record → Start Next → End Record | ⬜ |
-| Aufnahme im Browser über MediaRecorder API | ⬜ |
-| Hüllkurven-Automatik: Musik duckt unter der Stimme (im Original VT PLAYER VOLUME) | ⬜ |
-| Ergebnis als Item in die Playlist einbetten, mit korrekten Overlaps | ⬜ |
-| Nachbearbeitung im Mix Editor | ⬜ |
-| Tastatur-Shortcuts für den ganzen Ablauf | ⬜ |
-| VTDJ-Rolle: Nutzer, die nur voicetracken dürfen | ⬜ Phase Mehrbenutzer |
+| VT recorder: player A (end of the previous element) and player B (start of the next) audible | ⬜ |
+| Recording sequence: preroll → record → start next → end record | ⬜ |
+| Recording in the browser via the MediaRecorder API | ⬜ |
+| Envelope automation: music ducks under the voice (VT PLAYER VOLUME in the original) | ⬜ |
+| Embed the result as an item into the playlist, with correct overlaps | ⬜ |
+| Post-processing in the mix editor | ⬜ |
+| Keyboard shortcuts for the whole workflow | ⬜ |
+| VTDJ role: users who may only voicetrack | ⬜ multi-user phase |
 
-**Serverseitig gibt es keine eigene Voice-Tracking-API** (Wireshark-
-Mitschnitt des offiziellen Clients, 07.09.2026). Ein Voice Track ist
-technisch ein **ganz normales Item vom `Type: "Voice"`**, dessen
-Audiodatei vorher über den Storage-Upload
-(`POST /api/v1/storages/<id>/files`) hochgeladen wurde. Der Client fragt
-davor nur `stations/<id>/config/VoiceTrackImportFolder` (Zielordner, bei
-der beobachteten Installation leer) und `folders/unsorted/config` ab.
+**Server-side there is no dedicated voice-tracking API** (Wireshark
+capture of the official client, 2026-09-07). A voice track is technically
+a **completely normal item of `Type: "Voice"`**, whose audio file was
+previously uploaded via the storage upload
+(`POST /api/v1/storages/<id>/files`). Beforehand, the client only queries
+`stations/<id>/config/VoiceTrackImportFolder` (target folder, empty on
+the observed installation) and `folders/unsorted/config`.
 
-Für diese Phase heißt das: die API-Bausteine existieren in
-`apiRepository.js` bereits alle (Upload, `createItem`,
-`insertPlaylistItem`) — es fehlt kein Endpunkt mehr, nur die Aufnahme-
-und Mix-Logik im Frontend. Noch offen ist, welche Felder ein
-Voice-Track-Item über `Type: "Voice"` hinaus für korrekte Overlaps
-braucht. Details:
-[`docs/MAIRLISTDB-API.md` – Voice Tracking](MAIRLISTDB-API.md#voice-tracking--kein-eigener-endpunkt).
+For this phase this means: the API building blocks already all exist in
+`apiRepository.js` (upload, `createItem`, `insertPlaylistItem`) — no
+endpoint is missing anymore, only the recording and mix logic in the
+frontend. Still open is which fields, beyond `Type: "Voice"`, a
+voice-track item needs for correct overlaps. Details:
+[`docs/MAIRLISTDB-API.md` – Voice Tracking](MAIRLISTDB-API.md#voice-tracking--no-dedicated-endpoint).
 
 ---
 
-## 👥 Mehrbenutzer und Administration
+## 👥 Multi-user and administration
 
-**Eigene Benutzerverwaltung, unabhängig von mAirList:** mAirLists eigene
-`auth.db` wird nicht mehr genutzt — Login dort ist deaktiviert
-(`ManagementLogin=off`), da Daten nicht zuverlässig persistiert wurden und
-das MD5-Hash-Schema nicht verifizierbar war. Stattdessen eigene,
-unabhängige JSON-Datei `server/webinterface-auth.json`
-(`server/data/webAuthDb.js`) mit `bcrypt`-Hashing statt MD5. Beim ersten
-Start wird automatisch ein Bootstrap-Admin angelegt (Passwort im
-Server-Log oder via `INITIAL_ADMIN_PASSWORD` env var). Das
-Gruppen-Feature wurde entfernt — die fünf Rollen ersetzen dieses Konzept.
+**Dedicated user management, independent of mAirList:** mAirList's own
+`auth.db` is no longer used — login there is disabled
+(`ManagementLogin=off`), since data was not reliably persisted and the
+MD5 hash scheme could not be verified. Instead, a dedicated, independent
+JSON file `server/webinterface-auth.json` (`server/data/webAuthDb.js`)
+with `bcrypt` hashing instead of MD5. On first start, a bootstrap admin
+is created automatically (password in the server log or via
+`INITIAL_ADMIN_PASSWORD` env var). The group feature was removed — the
+five roles replace that concept.
 
-| Funktion | Status | Notiz |
+| Function | Status | Note |
 |---|---|---|
-| Login mit Benutzername/Passwort | ✅ | HTTP-only Session-Cookie, `server/routes/auth.js`, gegen eigene `webinterface-auth.json` |
-| Bootstrap-Admin beim ersten Start | ✅ | `server/data/webAuthDb.js`, Passwort im Log oder via `INITIAL_ADMIN_PASSWORD` |
-| Rollen (readonly/studio/dj/vtdj/admin) | ✅ | Fest definiert in `server/data/webAuthDb.js`, Scope-Mapping über `ROLE_SCOPES` |
-| Rolle Read-only: nur lesen | ✅ | |
-| Rolle Studio: lesen + Verlauf/Logging schreiben | ✅ | |
-| Rolle DJ: wie Studio + Playlists ändern und Scheduling, Bibliothek read-only | ✅ | |
-| Rolle VTDJ: Voice Tracking | ✅ | Rolle vorhanden, Voice-Tracking-Feature selbst noch offen (Phase E) |
-| Rolle Admin: alles inkl. Konfiguration | ✅ | |
-| Benutzer anlegen/bearbeiten | ✅ | Administration-Bereich, nur für Admin-User sichtbar (`isAdmin`-Check) |
-| Gruppen-Verwaltung | ❌ entfernt | Rollen ersetzen das Gruppen-Konzept |
-| Logs einsehen | ✅ | Logs-Seite |
-| Konflikt-Erkennung bei gleichzeitiger Playlist-Bearbeitung | ⬜ | |
+| Login with username/password | ✅ | HTTP-only session cookie, `server/routes/auth.js`, against the own `webinterface-auth.json` |
+| Bootstrap admin on first start | ✅ | `server/data/webAuthDb.js`, password in the log or via `INITIAL_ADMIN_PASSWORD` |
+| Roles (readonly/studio/dj/vtdj/admin) | ✅ | fixed, defined in `server/data/webAuthDb.js`, scope mapping via `ROLE_SCOPES` |
+| Role Read-only: read only | ✅ | |
+| Role Studio: read + write history/logging | ✅ | |
+| Role DJ: like Studio + edit playlists and scheduling, library read-only | ✅ | |
+| Role VTDJ: voice tracking | ✅ | role exists, voice-tracking feature itself still open (phase E) |
+| Role Admin: everything incl. configuration | ✅ | |
+| Create/edit user | ✅ | administration area, visible only to admin users (`isAdmin` check) |
+| Group management | ❌ removed | roles replace the group concept |
+| View logs | ✅ | logs page |
+| Conflict detection on concurrent playlist editing | ⬜ | |
 
-### Administration (Admin-Bereich)
+### Administration (admin area)
 
-Eigener Bereich in der Sidebar, nur für Admin-User sichtbar (`isAdmin`-Check).
+Dedicated area in the sidebar, visible only to admin users (`isAdmin` check).
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| **Benutzer-Verwaltung** (`frontend/src/pages/admin/Users.jsx`): anlegen, bearbeiten, löschen | ✅ |
-| Passwort ändern (bcrypt-Hashing) | ✅ |
-| Rolle je Benutzer setzen (readonly/studio/dj/vtdj/admin) | ✅ |
-| API-Token generieren und kopieren | ✅ |
-| **Logs-Seite** (`frontend/src/pages/Logs.jsx`): `playlistlog` aus der DB | ✅ |
-| Datumsfilter | ✅ |
+| **User management** (`frontend/src/pages/admin/Users.jsx`): create, edit, delete | ✅ |
+| Change password (bcrypt hashing) | ✅ |
+| Set role per user (readonly/studio/dj/vtdj/admin) | ✅ |
+| Generate and copy API token | ✅ |
+| **Logs page** (`frontend/src/pages/Logs.jsx`): `playlistlog` from the DB | ✅ |
+| Date filter | ✅ |
 | Pagination | ✅ |
 
 ---
 
-## ⚙️ Einstellungen
+## ⚙️ Settings
 
-Panel-Settings über `frontend/src/pages/Settings.jsx`, persistiert in `server/settings.json` (`server/lib/settings.js`).
+Panel settings via `frontend/src/pages/Settings.jsx`, persisted in `server/settings.json` (`server/lib/settings.js`).
 
-| Abschnitt | Status |
+| Section | Status |
 |---|---|
-| Allgemein (Stationsname, Datumsformat, Zeitformat, Standard-Datum) | ✅ |
-| Anzeige (Items pro Seite) | ✅ |
-| Pfade (Audio-Basisverzeichnis, Upload-Basisverzeichnis) | ✅ |
-| Sicherheit (Allowed Origins) | ✅ |
+| General (station name, date format, time format, default date) | ✅ |
+| Display (items per page) | ✅ |
+| Paths (audio base directory, upload base directory) | ✅ |
+| Security (allowed origins) | ✅ |
 
 ---
 
-## 🏠 Dashboard / Startseite
+## 🏠 Dashboard / homepage
 
-`frontend/src/pages/Dashboard.jsx`, erste Seite nach Login.
+`frontend/src/pages/Dashboard.jsx`, first page after login.
 
-| Funktion | Status |
+| Function | Status |
 |---|---|
-| Statistik-Kacheln: Items, Storages, Ordner, Benutzer | ✅ |
-| Heutige Playlist | ✅ |
-| Letzte Wiedergaben | ✅ |
-| Systemstatus: Data Source, Server, aktueller Benutzer/Rolle | ✅ |
+| Stat tiles: items, storages, folders, users | ✅ |
+| Today's playlist | ✅ |
+| Recent plays | ✅ |
+| System status: data source, server, current user/role | ✅ |
 
 ---
 
-## 🔀 Multi-Station & Multi-Playlist
+## 🔀 Multi-station & multi-playlist
 
-**Ziel:** Mehrere Stationen pro Datenbank verwalten, mit Umschalter im UI,
-sowie mehrere Playlisten pro Station (über das mAirList-Original hinausgehend).
+**Goal:** Manage multiple stations per database, with a switcher in the
+UI, as well as multiple playlists per station (going beyond the mAirList
+original).
 
-### Konzept (angelehnt an mAirList Multi-Station Scheduling)
-- Stationen teilen sich: Audio-Bibliothek, Storages, Hour/Music-Templates
-- Getrennt pro Station: Playlisten, Template-Zuweisung, Advertising-Settings
-- Jede Station kann mehrere Playlisten haben (Hauptplaylist + beliebig viele weitere),
-  z.B. für Subsender oder parallele Ausspielwege
+### Concept (modeled after mAirList multi-station scheduling)
+- Stations share: audio library, storages, hour/music templates
+- Separate per station: playlists, template assignment, advertising settings
+- Each station can have multiple playlists (main playlist + any number of
+  others), e.g. for sub-stations or parallel output paths
 
-### Geplante Funktionen
-- [ ] Schema-Check: Station-Tabelle/Spalten in echter .mldb prüfen (PRAGMA table_info)
-- [ ] Standard-Station in den Einstellungen festlegbar
-- [ ] Station-Switcher im UI (Sidebar/Header)
-- [ ] Mehrere Playlisten pro Station verwaltbar (anlegen, umbenennen, löschen)
-- [ ] Repository-Layer: Station-Filter für Playlist, Logs, Dashboard
-- [ ] AppDataContext: Caching pro Station statt global
+### Planned features
+- [ ] Schema check: verify station table/columns in a real .mldb (PRAGMA table_info)
+- [ ] Default station configurable in settings
+- [ ] Station switcher in the UI (sidebar/header)
+- [ ] Manage multiple playlists per station (create, rename, delete)
+- [ ] Repository layer: station filter for playlist, logs, dashboard
+- [ ] AppDataContext: caching per station instead of global
 
 ### Status
-🔽 Nicht Teil von Phase I, spätere Phase (noch zu benennen)
+🔽 Not part of phase I, a later phase (still to be named)
 
 ---
 
-## 🗓️ Späte Phasen 🔽
+## 🗓️ Later phases 🔽
 
-| Bereich | Inhalt |
+| Area | Content |
 |---|---|
-| Mini Scheduler | Stundenvorlagen (Templates), automatische Playlist-Generierung, Vorlagen-Zuweisungen (Standard, "1. Montag im Monat", gerade/ungerade Wochen, Feiertage) |
-| Werbung | Kampagnen, Advertising-Planung |
+| Mini scheduler | Hour templates, automatic playlist generation, template assignments (default, "1st Monday of the month", odd/even weeks, holidays) |
+| Advertising | Campaigns, advertising planning |
 
-## 🖥️ Neue Startseite & Hörerzahlen
+## 🖥️ New homepage & listener counts
 
-- Startseite (`Dashboard.jsx`) neu gebaut: Live-Cockpit ("Läuft gerade" / "Als Nächstes"),
-  Sende-Vorschau der nächsten Stunden mit Warnhinweis bei fehlender Planung, sowie die
-  bestehenden Bibliotheks-Statistiken. Aktualisiert sich alle 60 Sekunden.
-- Optionale Hörerzahl-Anzeige: Quelle (laut.fm oder eigene JSON-URL) in den Einstellungen
-  konfigurierbar (`server/lib/listenerSource.js`, `GET /api/listeners`). Bei Quelle "Keine"
-  oder Fehler wird die Kachel einfach weggelassen, kein Platzhalter.
-- "Lange nicht gespielt"-Übersicht wurde ausgelassen, da eine performante Datenquelle ohne
-  volle Bibliotheks-Iteration fehlt — mögliche spätere Lösung: caching o.ä.
+- Homepage (`Dashboard.jsx`) rebuilt: live cockpit ("Now playing" / "Up
+  next"), broadcast preview for the next hours with a warning when no
+  schedule exists, plus the existing library statistics. Refreshes every
+  60 seconds.
+- Optional listener-count display: source (laut.fm or a custom JSON URL)
+  configurable in settings (`server/lib/listenerSource.js`,
+  `GET /api/listeners`). With source "None" or on an error, the tile is
+  simply omitted, no placeholder.
+- A "not played in a while" overview was left out, since a performant
+  data source without a full library iteration is missing — possible
+  future solution: caching or similar.
 
-## ❌ Außerhalb des Scopes
+## ❌ Out of scope
 
-| Bereich | Begründung |
+| Area | Reason |
 |---|---|
-| Playout Steuerung | Das ist die Sendesoftware im Studio, nicht der DB Client |
-| Reports (Sendeprotokolle, GEMA) | Bewusst weggelassen |
-| Storage Redirection (per-Computer Pfade, Cache/Backup-Locations) | Windows-Client-Konzept, im Web-Kontext ohne Funktion |
-| Externe Audio-Editoren einbinden | Desktop-Konzept |
+| Playout control | That's the on-air software in the studio, not the DB client |
+| Reports (broadcast logs, GEMA) | Deliberately left out |
+| Storage redirection (per-computer paths, cache/backup locations) | Windows-client concept, no function in a web context |
+| Embedding external audio editors | Desktop concept |

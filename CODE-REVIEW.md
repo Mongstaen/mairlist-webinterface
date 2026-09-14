@@ -1,23 +1,23 @@
-# Code-Review
+# Code Review
 
-Reiner Analyse-Durchgang, Stand 2026-09-09. Keine Code-Änderungen vorgenommen. Geprüft wurden Backend (`server/`), Frontend-Struktur (`frontend/src/`), Dokumentation (`README.md`, `DEPLOYMENT.md`, `SETUP.md`, `docs/*.md`) sowie `package.json` (Backend + Frontend).
+Pure analysis pass, as of 2026-09-09. No code changes were made. Reviewed: backend (`server/`), frontend structure (`frontend/src/`), documentation (`README.md`, `DEPLOYMENT.md`, `SETUP.md`, `docs/*.md`), and `package.json` (backend + frontend).
 
 ---
 
-## Bereich 1: Sicherheit
+## Area 1: Security
 
-### 1.1 Echte Server-IP in eingecheckter Beispiel-Konfiguration — ✅ behoben (2026-09-09)
-**Fundort:** `server/.env.production.example:1,43`
-Die Datei enthielt als Kommentar und als `ALLOWED_ORIGINS`-Wert die reale Produktions-IP des Windows-Servers. Das war keine Zugangsdaten-Leckage (kein Passwort/Token), aber eine unnötige Preisgabe privater Infrastruktur-Details in einem öffentlichen GitHub-Repo.
-**Einschätzung:** niedrig bis mittel (Aufklärungswert für Angreifer: bekannte IP + offener Port für Portscans/Bruteforce).
-**Behoben:** Beide Vorkommen durch den Platzhalter `<SERVER-IP>` ersetzt. Ein Repo-weiter Grep bestätigt, dass die IP in keiner committeten Datei mehr steht. Hinweis: Die IP bleibt in der Git-Historie einsehbar — bei Bedarf wäre ein History-Rewrite nötig.
+### 1.1 Real server IP in a checked-in example configuration — ✅ fixed (2026-09-09)
+**Location:** `server/.env.production.example:1,43`
+The file contained, as a comment and as the `ALLOWED_ORIGINS` value, the real production IP of the Windows server. This was not a credentials leak (no password/token), but an unnecessary disclosure of private infrastructure details in a public GitHub repo.
+**Assessment:** low to medium (recon value for attackers: known IP + open port for portscans/bruteforce).
+**Fixed:** Both occurrences replaced with the placeholder `<SERVER-IP>`. A repo-wide grep confirms the IP no longer appears in any committed file. Note: the IP remains visible in git history — a history rewrite would be needed if desired.
 
-### 1.2 Keine echten Secrets im Code gefunden
-Grep nach typischen Passwort-/Token-/API-Key-Mustern in `.js`/`.md`/`.example`-Dateien lieferte keine Treffer. `.env` selbst ist korrekt in `.gitignore` ausgeschlossen, ebenso `webinterface-auth.db*`, `*.mldb*` und `server/settings.json`. `.env.production.example` enthält nur Platzhalter für Zugangsdaten (`API_DB_USER=`, `API_DB_PASSWORD=`, `INITIAL_ADMIN_PASSWORD=`).
-**Einschätzung:** kein Befund / positiv.
+### 1.2 No real secrets found in the code
+Grep for typical password/token/API-key patterns in `.js`/`.md`/`.example` files found no hits. `.env` itself is correctly excluded via `.gitignore`, as are `webinterface-auth.db*`, `*.mldb*`, and `server/settings.json`. `.env.production.example` only contains placeholders for credentials (`API_DB_USER=`, `API_DB_PASSWORD=`, `INITIAL_ADMIN_PASSWORD=`).
+**Assessment:** no finding / positive.
 
-### 1.3 Session-Cookie: `secure: false` fest codiert — ✅ behoben (2026-09-09)
-**Fundort:** `server/routes/auth.js:32-37`
+### 1.3 Session cookie: `secure: false` hardcoded — ✅ fixed (2026-09-09)
+**Location:** `server/routes/auth.js:32-37`
 ```js
 res.cookie("session", sid, {
   httpOnly: true,
@@ -26,190 +26,190 @@ res.cookie("session", sid, {
   expires: new Date(expiresAt),
 });
 ```
-`httpOnly` und `sameSite` sind gesetzt, aber `secure` ist hart auf `false` codiert statt an z. B. `process.env.NODE_ENV === "production"` oder eine eigene Env-Variable gekoppelt zu sein. Bei einem HTTPS-Deploy (Caddy + TLS ist laut `README.md` Phase H geplant) wird das Session-Cookie dadurch weiterhin auch über unverschlüsseltes HTTP übertragen, falls der Reverse Proxy nicht strikt auf HTTPS erzwingt.
-**Einschätzung:** mittel (wird relevant, sobald TLS/Caddy in Phase H produktiv geht; aktuell laut `DEPLOYMENT.md` ohne TLS deployt, daher kein akuter Widerspruch, aber ein Stolperstein für später).
-**Behoben:** `secure` hängt jetzt an der neuen Env-Variable `COOKIE_SECURE` (Default `false`), dokumentiert in `.env.production.example`. Bewusst nicht an `NODE_ENV` gekoppelt, da das Webinterface produktiv auch über reines HTTP läuft — eine automatische Kopplung hätte dort das Login lahmgelegt. `res.clearCookie()` nutzt dieselben Flags, sonst schlägt das Logout bei `secure: true` fehl.
+`httpOnly` and `sameSite` are set, but `secure` is hardcoded to `false` instead of being tied to, e.g., `process.env.NODE_ENV === "production"` or a dedicated env variable. On an HTTPS deploy (Caddy + TLS is planned for phase H per `README.md`), the session cookie would still be transmitted over unencrypted HTTP if the reverse proxy doesn't strictly enforce HTTPS.
+**Assessment:** medium (becomes relevant once TLS/Caddy goes live in phase H; currently deployed without TLS per `DEPLOYMENT.md`, so no acute contradiction, but a future pitfall).
+**Fixed:** `secure` now depends on the new env variable `COOKIE_SECURE` (default `false`), documented in `.env.production.example`. Deliberately not tied to `NODE_ENV`, since the webinterface also runs in production over plain HTTP — an automatic coupling would have broken login there. `res.clearCookie()` uses the same flags, otherwise logout would fail with `secure: true`.
 
-### 1.4 Kein Brute-Force-Schutz beim Login — ✅ behoben (2026-09-09)
-**Fundort:** `server/routes/auth.js:16-41` (`POST /login`)
-Es gibt kein Rate-Limiting, keine Verzögerung nach Fehlversuchen und keinen Account-Lockout. Ein Angreifer kann beliebig viele Login-Versuche gegen `admin` fahren. bcrypt (10 Runden, s. u.) bremst zwar pro Versuch, aber ohne Rate-Limit ist verteiltes/paralleles Brute-Forcing möglich.
-**Einschätzung:** mittel (kein kritisches Datenleck, aber ein klassischer Login-Endpoint-Fehler, besonders da der Admin-Benutzername `admin` fest vorgegeben ist, s. `server/data/webAuthDb.js:72`).
-**Behoben:** In-Memory-Rate-Limiting direkt in `auth.js`, ohne neue Dependency. Gezählt wird getrennt nach Benutzername **und** IP; nach `LOGIN_MAX_ATTEMPTS` (Default 5) Fehlversuchen antwortet die Route für `LOGIN_LOCKOUT_MINUTES` (Default 15) mit HTTP 429. Erfolgreicher Login setzt beide Zähler zurück, abgelaufene Einträge werden beim Zugriff und zusätzlich periodisch aufgeräumt. Beide Werte sind in `.env.production.example` dokumentiert. Die 429-Meldung ist neutral formuliert — verifiziert, dass existierende und nicht existierende Benutzernamen identische Antworten liefern.
-**Bewusste Einschränkung:** Die Zähler liegen im Arbeitsspeicher und gehen bei einem Neustart verloren; bei mehreren Instanzen bräuchte es einen gemeinsamen Store. Für die Einzelinstanz akzeptiert, im Code kommentiert.
+### 1.4 No brute-force protection on login — ✅ fixed (2026-09-09)
+**Location:** `server/routes/auth.js:16-41` (`POST /login`)
+There was no rate limiting, no delay after failed attempts, and no account lockout. An attacker could run unlimited login attempts against `admin`. bcrypt (10 rounds, see below) slows down each attempt, but without rate limiting, distributed/parallel brute-forcing was possible.
+**Assessment:** medium (not a critical data leak, but a classic login-endpoint flaw, especially since the admin username `admin` is fixed, see `server/data/webAuthDb.js:72`).
+**Fixed:** In-memory rate limiting directly in `auth.js`, with no new dependency. Counted separately by username **and** IP; after `LOGIN_MAX_ATTEMPTS` (default 5) failed attempts, the route responds with HTTP 429 for `LOGIN_LOCKOUT_MINUTES` (default 15). A successful login resets both counters; expired entries are cleaned up on access and additionally periodically. Both values are documented in `.env.production.example`. The 429 message is phrased neutrally — verified that existing and non-existing usernames return identical responses.
+**Deliberate limitation:** The counters live in memory and are lost on restart; multiple instances would need a shared store. Accepted for a single instance, commented in the code.
 
-### 1.5 bcrypt-Runden (Cost-Faktor 10) — ✅ behoben (2026-09-09)
-**Fundort:** `server/data/webAuthDb.js:68, 175, 205`
-`bcrypt.hashSync(password, 10)` wird an drei Stellen verwendet (Bootstrap-Admin, `createUser`, `changeUserPassword`). Cost-Faktor 10 ist der bcrypt-Standardwert und für 2026er Hardware inzwischen eher niedrig; 12 gilt heute als gängige Empfehlung für neue Systeme.
-**Einschätzung:** niedrig (10 ist nicht unsicher, aber nicht mehr State-of-the-Art).
-**Behoben:** Als Konstante `BCRYPT_COST = 12` an einer Stelle definiert, alle drei Verwendungen referenzieren sie. Betrifft nur neu gesetzte Passwörter — bestehende Cost-10-Hashes bleiben gültig, da bcrypt den Cost aus dem Hash selbst liest (verifiziert). Kein Migrationsbedarf. Hash-Dauer steigt auf ~420 ms, was für Logins unproblematisch ist und Brute-Force zusätzlich bremst.
+### 1.5 bcrypt rounds (cost factor 10) — ✅ fixed (2026-09-09)
+**Location:** `server/data/webAuthDb.js:68, 175, 205`
+`bcrypt.hashSync(password, 10)` is used in three places (bootstrap admin, `createUser`, `changeUserPassword`). Cost factor 10 is bcrypt's default and is now on the low side for 2026-era hardware; 12 is today's common recommendation for new systems.
+**Assessment:** low (10 is not insecure, but no longer state of the art).
+**Fixed:** Defined as a single constant `BCRYPT_COST = 12`, all three usages reference it. Only affects newly set passwords — existing cost-10 hashes remain valid since bcrypt reads the cost from the hash itself (verified). No migration needed. Hash time increases to ~420 ms, which is unproblematic for logins and additionally slows brute-forcing.
 
-### 1.6 ~~Eingabevalidierung in den Routen ist lückenhaft, aber nicht kritisch~~ ✅ behoben
-**Fundorte:** `server/routes/library.js` (diverse), `server/routes/auth.js`
-- Positiv: Alle SQL-Zugriffe in `sqlRepository.js` laufen konsequent über parametrisierte `better-sqlite3`-Prepared-Statements (`db.prepare(...).all(...)`/`.run(...)`), keine String-Konkatenation von Nutzereingaben in SQL gefunden — kein SQL-Injection-Risiko identifiziert.
-- Es gibt jedoch kaum Typ-/Format-Validierung auf Body-/Query-Parametern jenseits von "ist vorhanden" (`if (!name || !name.trim())` etc.). Beispiele:
-  - `library.js:170-175` (`GET /api/items`): `folderId`, `storageId` werden ungeprüft durchgereicht; in `sqlRepository.js:353-356` landet `Number(filters.storageId)` — bei nicht-numerischem Query-Value wird daraus `NaN`, was zwar keinen Crash, aber ein stillschweigend leeres Ergebnis erzeugt statt eines 400-Fehlers.
-  - `library.js:117-152` (Storages-Routen, `requireScope("admin")`): `location`/`path` wird nicht auf Pfad-Validität geprüft, bevor es in `sqlRepository.js:219-226`/`228-239` in `defaultLocation` landet — dieser Wert bestimmt später in `resolveStorageDir()`/`resolveAudioPath()` das Dateisystem-Basisverzeichnis. Da diese Route `admin`-Scope voraussetzt, ist das Risiko durch die Rollenbindung entschärft, aber ein Admin könnte versehentlich (oder ein kompromittierter Admin-Account absichtlich) ein Storage mit `..`-Pfad-Anteilen anlegen.
-  - `auth.js:117-128` (`PUT /admin/users/:id/permissions`): `role` wird nicht gegen `webAuthDb.ROLES` validiert, bevor es an `setUserPermissions` geht — dort filtert `ROLES.includes(role)` zwar korrekt (`webAuthDb.js:222`), sodass ein ungültiger Wert nur stillschweigend ignoriert statt einen 400 zurückzugeben.
-**Einschätzung:** niedrig bis mittel (kein direktes Sicherheitsloch, eher Robustheits-/UX-Lücke; im admin-geschützten Storage-Fall potenziell relevant für Path-Traversal-Härtung).
-**Vorschlag:** Kleine Validierungsschicht (z. B. `zod`/`joi` oder manuelle Guards) für Body-/Query-Parameter vor dem Repository-Aufruf, besonders bei numerischen IDs und Rollen-Strings.
+### 1.6 ~~Input validation in the routes is patchy, but not critical~~ ✅ fixed
+**Locations:** `server/routes/library.js` (various), `server/routes/auth.js`
+- Positive: All SQL access in `sqlRepository.js` consistently goes through parameterized `better-sqlite3` prepared statements (`db.prepare(...).all(...)`/`.run(...)`), no string concatenation of user input into SQL found — no SQL injection risk identified.
+- However, there is barely any type/format validation on body/query parameters beyond "is present" (`if (!name || !name.trim())` etc.). Examples:
+  - `library.js:170-175` (`GET /api/items`): `folderId`, `storageId` are passed through unchecked; in `sqlRepository.js:353-356`, `Number(filters.storageId)` results in `NaN` for a non-numeric query value — not a crash, but a silently empty result instead of a 400 error.
+  - `library.js:117-152` (storages routes, `requireScope("admin")`): `location`/`path` is not checked for path validity before landing in `defaultLocation` in `sqlRepository.js:219-226`/`228-239` — this value later determines the filesystem base directory in `resolveStorageDir()`/`resolveAudioPath()`. Since this route already requires `admin` scope, the risk is mitigated by role binding, but an admin could accidentally (or a compromised admin account deliberately) create a storage with `..` path segments.
+  - `auth.js:117-128` (`PUT /admin/users/:id/permissions`): `role` is not validated against `webAuthDb.ROLES` before being passed to `setUserPermissions` — there, `ROLES.includes(role)` does filter correctly (`webAuthDb.js:222`), so an invalid value is only silently ignored instead of returning a 400.
+**Assessment:** low to medium (not a direct security hole, more a robustness/UX gap; potentially relevant for path-traversal hardening in the admin-protected storage case).
+**Suggestion:** Small validation layer (e.g. `zod`/`joi` or manual guards) for body/query parameters before the repository call, especially for numeric IDs and role strings.
 
-**Behoben:** Neue Datei `server/lib/validate.js` mit kleinen, lesbaren Guards — bewusst **ohne** zusätzliche Dependency. Sie liefert `requireId`/`optionalId`, `requireDate`/`optionalDate`, `requirePlaylistId`, `optionalCount`, `requirePosition`, `requireText`/`optionalText` sowie `requireObject`/`optionalObject`. Der Helfer `wrapValidation()` verpackt die Handler so, dass ein `ValidationError` als sauberer 400 mit deutscher Meldung beantwortet wird, statt als 500 im globalen Error-Handler zu landen.
+**Fixed:** New file `server/lib/validate.js` with small, readable guards — deliberately **without** an additional dependency. It provides `requireId`/`optionalId`, `requireDate`/`optionalDate`, `requirePlaylistId`, `optionalCount`, `requirePosition`, `requireText`/`optionalText`, and `requireObject`/`optionalObject`. The `wrapValidation()` helper wraps handlers so a `ValidationError` is answered as a clean 400 with an English message, instead of landing as a 500 in the global error handler.
 
-Angewendet auf alle Handler in `library.js` und `auth.js`:
-- **IDs** werden nur auf "vorhanden, String/Zahl, plausibel kurz" geprüft und *nicht* auf ein Format — die Repositories nutzen unterschiedliche ID-Typen (mock/sqlite numerisch, mAirListDB-API String), eine strengere Prüfung hätte je nach `DATA_SOURCE` legitime Aufrufe abgelehnt. `/api/items/abc/history` liefert deshalb weiterhin 404 ("nicht gefunden"), nicht 400 — es stürzt aber nicht mehr ab.
-- **Datum** (`?date=`) und **Playlist-IDs** (`YYYY-MM-DD-HH`) werden per Regex geprüft.
-- **`limit`** ist auf max. 500 gedeckelt, `limit`/`offset` müssen nicht-negative Ganzzahlen sein.
-- **Freitext** (Titel, Ordnername, Suchbegriff, Filter) ist auf 500 Zeichen begrenzt; Storage-Pfade auf 4000.
-- **Bodys** werden vor dem Zugriff als Objekt verifiziert (Arrays und Skalare ⇒ 400).
-- **Login** akzeptiert nur noch nicht-leere Strings für `username`/`password` (max. 200 Zeichen) — hält u. a. Objekt-Payloads und sehr große Eingaben vom teuren bcrypt-Vergleich fern. Falsches Passwort bleibt korrekt 401.
-- **`role`** wird jetzt in beiden Routen gegen `webAuthDb.ROLES` geprüft und mit 400 abgelehnt, statt still verworfen zu werden (der oben beschriebene Fall).
+Applied to all handlers in `library.js` and `auth.js`:
+- **IDs** are only checked for "present, string/number, plausibly short", *not* for a specific format — the repositories use different ID types (mock/sqlite numeric, mAirListDB API string); a stricter check would have rejected legitimate calls depending on `DATA_SOURCE`. `/api/items/abc/history` therefore still returns 404 ("not found"), not 400 — but it no longer crashes.
+- **Date** (`?date=`) and **playlist IDs** (`YYYY-MM-DD-HH`) are checked via regex.
+- **`limit`** is capped at 500 max; `limit`/`offset` must be non-negative integers.
+- **Free text** (title, folder name, search term, filter) is limited to 500 characters; storage paths to 4000.
+- **Bodies** are verified as objects before access (arrays and scalars ⇒ 400).
+- **Login** now only accepts non-empty strings for `username`/`password` (max. 200 characters) — this keeps, among other things, object payloads and very large inputs away from the expensive bcrypt comparison. Wrong password remains correctly 401.
+- **`role`** is now validated against `webAuthDb.ROLES` in both routes and rejected with 400 instead of being silently dropped (the case described above).
 
-Bewusst großzügig gehalten, damit nichts Bestehendes bricht: optionale Parameter bleiben optional (fehlend ≠ ungültig), `newParentId: null` und `folderId: null` bleiben erlaubt (Verschieben auf oberste Ebene bzw. aus dem Ordner heraus), und `afterPosition: 0` bleibt gültig ("ganz an den Anfang").
+Deliberately kept generous so nothing existing breaks: optional parameters stay optional (missing ≠ invalid), `newParentId: null` and `folderId: null` remain allowed (moving to top level or out of a folder), and `afterPosition: 0` remains valid ("move to the very front").
 
-Verifiziert: `smoke-writes.js` weiterhin 12/12 grün; alle Lese- und Schreibrouten gegen einen laufenden Server mit gültigen Anfragen geprüft (unverändert 2xx); kaputte Anfragen (`?date=kaputt`, `?limit=-5`, `?limit=999999`, überlange Freitexte, `order: "nichtarray"`, Array-statt-Objekt-Body, Playlist-ID `nichtsogut`, Position `abc`) liefern jetzt durchweg 400 mit verständlicher Meldung statt Crash oder stillem Fehlverhalten. Der API-Modus (`smoke-reads-api.js`) wurde nicht ausgeführt — dafür fehlt hier eine erreichbare mAirListDB-Server-Instanz.
+Verified: `smoke-writes.js` still 12/12 green; all read and write routes checked against a running server with valid requests (unchanged 2xx); broken requests (`?date=broken`, `?limit=-5`, `?limit=999999`, overly long free text, `order: "notanarray"`, array-instead-of-object body, playlist ID `notgood`, position `abc`) now consistently return 400 with an understandable message instead of a crash or silent misbehavior. API mode (`smoke-reads-api.js`) was not run — a reachable mAirListDB server instance is missing here.
 
-### 1.7 Datei-Upload: Typ/Größe geprüft, aber Extension-Filter ist client-kontrolliert
-**Fundort:** `server/routes/library.js:21, 40-51`
-`ALLOWED_AUDIO_EXTENSIONS` (`wav/mp3/aac/flac/ogg`) und ein 500-MB-Limit sind über multer korrekt konfiguriert. Der Filter prüft aber nur die Datei-Extension aus `file.originalname` (vom Client gesetzt), nicht den tatsächlichen Datei-Inhalt/MIME-Typ (z. B. Magic Bytes). Ein Angreifer mit `library.write`-Scope könnte eine beliebige Datei mit `.mp3`-Endung hochladen.
-**Einschätzung:** niedrig (Upload erfordert bereits Authentifizierung + `library.write`-Scope; Datei landet in einem definierten Storage-Verzeichnis, kein direktes RCE-Risiko ersichtlich, aber potenziell für Speicherplatz-Missbrauch oder falsch deklarierte Inhalte).
-**Vorschlag:** Optional Magic-Byte-Prüfung (z. B. `file-type`-Paket) ergänzen, falls das Bedrohungsmodell nicht-vertrauenswürdige `library.write`-Nutzer einschließt.
+### 1.7 File upload: type/size checked, but the extension filter is client-controlled
+**Location:** `server/routes/library.js:21, 40-51`
+`ALLOWED_AUDIO_EXTENSIONS` (`wav/mp3/aac/flac/ogg`) and a 500 MB limit are correctly configured via multer. However, the filter only checks the file extension from `file.originalname` (set by the client), not the actual file content/MIME type (e.g. magic bytes). An attacker with `library.write` scope could upload an arbitrary file with an `.mp3` extension.
+**Assessment:** low (upload already requires authentication + `library.write` scope; the file lands in a defined storage directory, no direct RCE risk apparent, but potentially useful for storage-space abuse or misdeclared content).
+**Suggestion:** Optionally add a magic-byte check (e.g. the `file-type` package) if the threat model includes untrusted `library.write` users.
 
-### 1.8 `apiRepository.js`: Timeouts vorhanden, aber ohne Health-Check-Rückfallebene
-**Fundort:** `server/data/apiRepository.js:33, 157-179, 729-741`
-Alle Requests an den mAirListDB Server laufen über `REQUEST_TIMEOUT_MS = 10000` mit `AbortController` — sowohl in `doApiRequest()` als auch in `getAudioStream()`. Das ist sauber umgesetzt.
-**Einschätzung:** kein Befund / positiv.
+### 1.8 `apiRepository.js`: timeouts present, but no health-check fallback
+**Location:** `server/data/apiRepository.js:33, 157-179, 729-741`
+All requests to the mAirListDB server go through `REQUEST_TIMEOUT_MS = 10000` with `AbortController` — both in `doApiRequest()` and `getAudioStream()`. This is cleanly implemented.
+**Assessment:** no finding / positive.
 
-### 1.9 SSRF-Risiko bei benutzerdefinierter Hörerzahl-URL — ✅ behoben (2026-09-09)
-**Fundort:** `server/lib/listenerSource.js:20-30, 51-58`
-Der `custom`-Modus der Hörerzahl-Anzeige lässt Admins (`requireScope("admin")` in `library.js:443` für `PUT /api/settings`) eine beliebige `listenerUrl` konfigurieren, die der Server serverseitig per `fetch()` abruft (`fetchJson()`), inklusive eines per `listenerJsonPath` konfigurierbaren Pfads in die Antwort. Es gibt keine Prüfung gegen `localhost`/`127.0.0.1`/private IP-Ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) oder Cloud-Metadata-Adressen (`169.254.169.254`). Da die Route bereits `admin`-Scope voraussetzt, ist das Risiko auf böswillige/kompromittierte Admin-Accounts beschränkt, aber es ist ein klassisches SSRF-Muster (Server ruft nutzerkonfigurierte URL ab, Antwort-Inhalt wird zurückgegeben).
-**Einschätzung:** mittel (Ausnutzung erfordert Admin-Rechte, aber genau dafür ist der Endpunkt gedacht — kein Zusatzschutz vorhanden).
-**Behoben:** `assertUrlAllowed()` in `server/lib/listenerSource.js` prüft vor jedem custom-Abruf: nur `http`/`https`, kein `localhost`/`.local`, und — nach DNS-Auflösung — keine Loopback-, privaten oder link-local-Adressen (inkl. Cloud-Metadata `169.254.169.254`), IPv4 wie IPv6. Die Prüfung greift bewusst auf der aufgelösten IP, damit ein Hostname, der auf `127.0.0.1` zeigt, sie nicht umgeht. Nur im `custom`-Modus aktiv; laut.fm bleibt unverändert. Abgelehnte URLs liefern `{ available: false, error }` statt zu crashen. Verifiziert gegen acht Angriffsvarianten (localhost, 127.0.0.1, 169.254.169.254, 192.168.x, 10.x, `file://`, `[::1]`, kaputte URL) — alle blockiert, legitime externe URLs weiterhin erreichbar.
-**Rest-Risiko:** Die Prüfung ist nicht vollständig DNS-Rebinding-fest — zwischen Auflösung und dem eigentlichen `fetch()` liegt eine zweite, ungeprüfte Auflösung (TOCTOU). Für ein Admin-Scope-Feature vertretbar; eine harte Absicherung bräuchte einen eigenen Agent, der pro Verbindung die Ziel-IP prüft.
+### 1.9 SSRF risk with custom listener-count URL — ✅ fixed (2026-09-09)
+**Location:** `server/lib/listenerSource.js:20-30, 51-58`
+The `custom` mode of the listener-count display lets admins (`requireScope("admin")` in `library.js:443` for `PUT /api/settings`) configure an arbitrary `listenerUrl`, which the server fetches server-side via `fetch()` (`fetchJson()`), including a path into the response configurable via `listenerJsonPath`. There was no check against `localhost`/`127.0.0.1`/private IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) or cloud metadata addresses (`169.254.169.254`). Since the route already requires `admin` scope, the risk is limited to malicious/compromised admin accounts, but it is a classic SSRF pattern (server fetches a user-configured URL, response content is returned).
+**Assessment:** medium (exploitation requires admin rights, but that's exactly what the endpoint is for — no additional protection was in place).
+**Fixed:** `assertUrlAllowed()` in `server/lib/listenerSource.js` checks before every custom fetch: only `http`/`https`, no `localhost`/`.local`, and — after DNS resolution — no loopback, private, or link-local addresses (including cloud metadata `169.254.169.254`), both IPv4 and IPv6. The check deliberately operates on the resolved IP so a hostname pointing to `127.0.0.1` cannot bypass it. Only active in `custom` mode; laut.fm is unchanged. Rejected URLs return `{ available: false, error }` instead of crashing. Verified against eight attack variants (localhost, 127.0.0.1, 169.254.169.254, 192.168.x, 10.x, `file://`, `[::1]`, malformed URL) — all blocked, legitimate external URLs remain reachable.
+**Residual risk:** The check is not fully DNS-rebinding-proof — there is a second, unchecked resolution between the check and the actual `fetch()` (TOCTOU). Acceptable for an admin-scope feature; a hard mitigation would need a dedicated agent that checks the target IP per connection.
 
-### 1.10 CORS-Konfiguration
-**Fundort:** `server/index.js:13-28`
-CORS ist auf `ALLOWED_ORIGINS` (Env-gesteuert) eingeschränkt, mit `credentials: true`. Fehlende Origin (curl/Postman/same-origin) wird pauschal erlaubt — für ein Dev-Setup akzeptabel, in Produktion etwas großzügig, aber da `credentials: true` nur mit explizitem Origin-Header greift, ist das Risiko gering.
-**Einschätzung:** niedrig.
+### 1.10 CORS configuration
+**Location:** `server/index.js:13-28`
+CORS is restricted to `ALLOWED_ORIGINS` (env-controlled), with `credentials: true`. A missing origin (curl/Postman/same-origin) is allowed across the board — acceptable for a dev setup, somewhat generous in production, but since `credentials: true` only applies with an explicit origin header, the risk is low.
+**Assessment:** low.
 
-### 1.11 Fehlende Security-Header
-**Fundort:** `server/index.js` (gesamte Datei)
-Kein `helmet` oder manuelle Security-Header (CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` etc.). Für eine reine JSON-API mit separat gehostetem Frontend-Build (`express.static`) ist das Risiko begrenzt, aber Standard-Praxis fehlt komplett.
-**Einschätzung:** niedrig.
-**Vorschlag:** `helmet` mit Standardeinstellungen ergänzen, CSP ggf. anpassen für Audio-Streaming/Inline-Styles.
+### 1.11 Missing security headers
+**Location:** `server/index.js` (entire file)
+No `helmet` or manual security headers (CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, etc.). For a pure JSON API with a separately hosted frontend build (`express.static`), the risk is limited, but standard practice is completely missing.
+**Assessment:** low.
+**Suggestion:** Add `helmet` with default settings, adjust CSP as needed for audio streaming/inline styles.
 
-### 1.12 Abhängigkeiten (`npm audit`) — ✅ teilweise behoben (2026-09-09)
+### 1.12 Dependencies (`npm audit`) — ✅ partially fixed (2026-09-09)
 **Backend (`server/package.json`):**
-- `multer` — ✅ **behoben**: von 2.2.0 auf 2.3.0 gehoben, beseitigt alle vier DoS-CVEs (GHSA-wc9g-mqfw-jrwm, GHSA-qfvm-cv95-jqjf, GHSA-535w-7cp7-47q4, GHSA-qvfw-j98x-7q72). Kein Breaking Change: die genutzte API (`memoryStorage`, `single()`, `limits`, `fileFilter`) ist unverändert, `library.js` brauchte keine Anpassung. `body-parser` zog dabei auf 1.20.8 nach.
-- `qs` (moderat, transitiv über express) — ⚠️ **offen**: Express 4 pinnt `qs` hart auf `~6.15.1`, die gepatchte 6.16.0 liegt außerhalb dieser Range. Ein Fix erfordert entweder Express 5 (Major, Breaking) oder einen erzwungenen `overrides`-Eintrag. Bewusst nicht im Rahmen des Sicherheits-Fixes gemacht. `body-parser` nutzt intern bereits 6.16.0; betroffen ist nur noch Express' eigener Query-Parser.
-- Versionierung: `bcryptjs`, `better-sqlite3`, `cookie-parser`, `cors`, `express`, `multer` sind alle mit `^` (Caret-Range) gepinnt — außer `dotenv`, das bewusst exakt auf `16.4.5` gepinnt ist (siehe `README.md:115-116`, Referenz auf den dotenv-17-Prompt-Injection-Vorfall). Das ist inkonsistent: Wenn die dotenv-Historie als Grund für exaktes Pinning genannt wird, wäre zu überlegen, ob nicht auch die übrigen direkten Abhängigkeiten (insb. `multer`, das gerade aktive CVEs hat) enger gepinnt oder zumindest per Lockfile+CI-Audit überwacht werden sollten. Aktuell verlässt sich das Projekt bei allen anderen Paketen auf Caret-Ranges, was künftige Minor-Updates automatisch zulässt.
+- `multer` — ✅ **fixed**: bumped from 2.2.0 to 2.3.0, eliminates all four DoS CVEs (GHSA-wc9g-mqfw-jrwm, GHSA-qfvm-cv95-jqjf, GHSA-535w-7cp7-47q4, GHSA-qvfw-j98x-7q72). No breaking change: the API used (`memoryStorage`, `single()`, `limits`, `fileFilter`) is unchanged, `library.js` needed no adjustment. `body-parser` was pulled to 1.20.8 along with it.
+- `qs` (moderate, transitive via express) — ⚠️ **open**: Express 4 hard-pins `qs` to `~6.15.1`, and the patched 6.16.0 lies outside that range. A fix requires either Express 5 (major, breaking) or a forced `overrides` entry. Deliberately left out of scope for the security fix. `body-parser` already uses 6.16.0 internally; only Express's own query parser is still affected.
+- Versioning: `bcryptjs`, `better-sqlite3`, `cookie-parser`, `cors`, `express`, `multer` are all pinned with `^` (caret range) — except `dotenv`, which is deliberately pinned exactly to `16.4.5` (see `README.md:115-116`, referencing the dotenv-17 prompt-injection incident). This is inconsistent: if the dotenv history is cited as the reason for exact pinning, it would be worth considering whether the other direct dependencies (especially `multer`, which currently has active CVEs) should also be pinned more tightly or at least monitored via lockfile + CI audit. Currently the project relies on caret ranges for all other packages, which automatically allows future minor updates.
 
 **Frontend (`frontend/package.json`):**
-- `vite` (`^4.4.9`) — **hoch/moderat**: mehrere bekannte Schwachstellen (Path-Traversal, Dev-Server-Request-Leak), Fix verfügbar nur über Major-Upgrade auf vite 8.
-- `esbuild` (transitiv über vite) — moderat.
-- Reine Dev-Dependencies (`vite`, `esbuild`, `@vitejs/plugin-react` etc.) betreffen nur die lokale Entwicklungsumgebung, nicht den Produktions-Build selbst — Risiko dadurch eingegrenzt, aber sollte trotzdem aktualisiert werden.
+- `vite` (`^4.4.9`) — **high/moderate**: several known vulnerabilities (path traversal, dev-server request leak), fix only available via a major upgrade to vite 8.
+- `esbuild` (transitive via vite) — moderate.
+- Pure dev dependencies (`vite`, `esbuild`, `@vitejs/plugin-react`, etc.) only affect the local development environment, not the production build itself — risk thereby limited, but should still be updated.
 
-**Einschätzung:** mittel — die einzige `high`-Lücke (multer) ist beseitigt; die verbliebenen sind moderat und hängen beide an Major-Upgrades.
-**Offene Punkte für einen eigenen Durchgang:**
-1. **Express 4 → 5** — löst die `qs`-Lücke. Breaking Changes in Routing/Middleware, braucht einen Test-Durchgang über alle Routen.
-2. **Vite 4 → 8** — löst die esbuild-Lücke. Betrifft nur den Dev-Server, nicht den Produktions-Build, daher niedrige Dringlichkeit.
-3. **Pinning-Strategie** — nach dem Update wurde geprüft, dass die drei geänderten Pakete (multer, body-parser, qs) keine `preinstall`/`install`/`postinstall`/`prepare`-Scripts mitbringen; Lehre aus dem dotenv-17-Vorfall. Als dauerhafte Absicherung wäre Dependabot/Renovate + CI-Audit-Gate sinnvoller als manuelles Pinning aller Pakete.
-
----
-
-## Bereich 2: Dokumentation
-
-### 2.1 `getItemHistory()`-Rückgabeformat weicht zwischen SQL- und API-Repository ab — ✅ behoben (2026-09-09)
-**Fundort:** `server/data/sqlRepository.js:381-402` vs. `server/data/apiRepository.js:664-685` vs. `frontend/src/pages/ItemEditor.jsx:1218`
-- `sqlRepository.js#getItemHistory` gibt `{ slot, date, hour }` zurück.
-- `apiRepository.js#getItemHistory` (kommentiert als "mirrors" der API) gibt `{ playedAt, show, moderator }` zurück und weist im Kommentar (`apiRepository.js:668-675`) explizit auf diese Inkonsistenz hin: *"sqlRepository.js's getItemHistory() returns { slot, date, hour } instead, which that same table doesn't read — a pre-existing mismatch in the sqlite path, left alone here"*.
-- Das Frontend (`ItemEditor.jsx:1218`) liest `entry.playedAt` — das Feld existiert nur im API-Modus. Im `DATA_SOURCE=sqlite`-Modus (laut `.env.production.example:16` der **Standard-Produktionsmodus**) zeigt die History-Tabelle im Item-Editor daher vermutlich für jeden Eintrag "-" statt eines Datums, weil `playedAt` dort `undefined` ist.
-- Der Git-Log zeigt einen Commit `10043d1 fix: getItemHistory liefert playedAt fuer die Verlauf-Tabelle` — das deutet darauf hin, dass dies im API-Pfad bereits behoben wurde, der SQL-Pfad aber laut explizitem Kommentar bewusst unangetastet blieb.
-**Einschätzung:** mittel bis kritisch — abhängig davon, ob `sqlite` der tatsächlich genutzte Produktionsmodus ist (laut `.env.production.example` ja). Wenn ja, ist die Verlauf-Tabelle im Item Editor im Produktivbetrieb vermutlich funktional kaputt (zeigt kein Datum an).
-**Behoben:** `sqlRepository.js#getItemHistory` liefert jetzt zusätzlich `playedAt`, `show` und `moderator` im Format des API-Repositories. `slot`/`date`/`hour` bleiben erhalten (vorher geprüft: außerhalb dieser Funktion liest sie niemand). Der Verdacht hat sich bestätigt — gegen die Test-DB verifiziert: vor dem Fix war `playedAt` bei allen Einträgen `undefined`, jetzt liefern alle 43 Einträge gültige Datumswerte, Sortierung und Stunden-Verteilung funktionieren.
-**Bekannte Einschränkung:** Die `playlist`-Tabelle kennt nur Datum + Stunde, der Zeitstempel ist also stundengenau (Minuten immer `:00`) — anders als im `api`-Modus mit exakter Uhrzeit. Bewusst ohne Zeitzonen-Suffix konstruiert, damit die Stunde beim Parsen im Browser nicht verschoben wird. Im Code kommentiert.
-
-### 2.2 README behauptet DB-Zugriff über "echten SQL Server", tatsächlich läuft SQLite
-**Fundort:** `README.md:39` vs. `README.md:41`
-Zeile 39: *"Die mAirListDB läuft auf einem echten SQL Server (PostgreSQL, MariaDB/MySQL oder MSSQL). Direkter Datenbankzugriff ist möglich."* Zeile 41 direkt danach: *"Aktueller Modus: echte SQLite-DB."* Das ist für sich genommen nicht falsch (beide Sätze sind im Kontext des größeren mAirList-Ökosystems korrekt gemeint), aber die Abfolge ist verwirrend für Neueinsteiger — der erste Satz suggeriert einen SQL-Server-Zugriff, der zweite widerspricht dem scheinbar sofort. Kein Faktenfehler, aber ein Formulierungs-/Reihenfolgeproblem.
-**Einschätzung:** niedrig.
-**Vorschlag:** Absatz umstellen: erst den aktuellen SQLite-Modus erklären, dann den optionalen SQL-Server-Direktzugriff als Zukunftsoption/Alternative kennzeichnen.
-
-### 2.3 `docs/FEATURES.md` und `README.md` Phasenstatus wirkt an einigen Stellen optimistischer als der Code
-Nicht im Detail verifizierbar ohne vollständigen Abgleich jeder Phase gegen den Code, aber als Hinweis: `README.md:81` (Phase F) listet "Konflikt-Erkennung fehlt noch" bei Mehrbenutzer-Playlists — das ist konsistent mit dem Code (`reorderPlaylist`/`insertPlaylistItem` in beiden Repositories haben keine Versions-/Konflikt-Prüfung außer dem unverifizierten `VersionInfo`-Passthrough in `apiRepository.js:887-898`). Kein Widerspruch gefunden, aber erwähnenswert: Der `VersionInfo`-Mechanismus in `writeHour()` (API-Pfad) wird laut Kommentar (`apiRepository.js:873-875`) nicht auf Konflikte geprüft — passt zur Doku-Aussage "fehlt noch", ist aber im Code selbst nicht explizit als offener Punkt markiert (nur implizit über den Kommentar).
-**Einschätzung:** niedrig (Doku und Code stimmen im Kern überein, aber der offene Punkt ist im Code nur als beiläufiger Kommentar sichtbar, nicht als TODO/FIXME).
-
-### 2.4 Fehlende Modul-Dokumentation
-**Fundort:** `server/data/repository.js` (Mock-Repository)
-Die Datei wurde nicht vollständig gelesen (nicht im Scope der Kern-Prüfung), aber `apiRepository.js` und `sqlRepository.js` sind beide durchgehend sehr gut mit Kommentaren versehen (Header-Kommentare pro Funktion, Begründungen für Design-Entscheidungen). Das ist positiv und über dem Durchschnitt für dieses Projekt — kein negativer Befund hier, eher lobend zu erwähnen.
-**Einschätzung:** kein Befund / positiv.
-
-### 2.5 Onboarding: README + DEPLOYMENT.md + SETUP.md sind grundsätzlich ausreichend
-`DEPLOYMENT.md` deckt Windows-Deployment inkl. Build-Tools-Fallstricke (`better-sqlite3`-Kompilierung) detailliert ab und wurde laut eigener Aussage ("Produktivdeployment — Erfahrungen", `DEPLOYMENT.md:108-113`) bereits einmal real durchgeführt und verifiziert. Ein Schritt fehlt jedoch:
-**Fundort:** `DEPLOYMENT.md:34-55` (Schritt 3, Environment konfigurieren)
-Es wird nicht erwähnt, dass beim `DATA_SOURCE=api`-Modus zusätzlich `API_DB_USER`/`API_DB_PASSWORD` gesetzt werden müssen (diese sind in `.env.production.example:23-24` auskommentiert) — wer versucht, direkt mit `api`-Modus zu starten, bekommt keinen Hinweis in `DEPLOYMENT.md`, nur den Kommentar in der `.env`-Datei selbst.
-**Einschätzung:** niedrig (Standardmodus ist `sqlite`, `api`-Modus ist laut README noch nicht vollständig — daher nachrangig).
-**Vorschlag:** Kurzer Absatz in `DEPLOYMENT.md` für den optionalen `api`-Modus, mit Verweis auf `docs/MAIRLISTDB-API.md`.
-
-### 2.6 Toter/auskommentierter Code — ✅ behoben (2026-09-10)
-**Fundorte:**
-- `server/data/repository.js:322,330,347,362,532,540,548,558,622,694,755,773,789` — durchgehend `TODO: replace with a real SQL ... once the schema is confirmed` Kommentare. Das Schema ist inzwischen längst bestätigt (`docs/SCHEMA.md` existiert, `sqlRepository.js` ist produktiv) — diese Datei ist damit vermutlich das ursprüngliche Mock-Repository und wird nur noch als `DATA_SOURCE` Fallback (`mock`) benutzt. Die TODOs sind über den Punkt hinaus veraltet, an dem sie noch Sinn ergeben (die reale SQL-Implementierung existiert längst parallel in `sqlRepository.js`).
-- `server/data/apiRepository.js:1336` — ein weiteres TODO ("Diese Typ-Liste ist unvollständig...") das im Kontext der Funktion nachvollziehbar und noch aktuell ist (kein Dead-Code-Befund, nur zur Vollständigkeit erwähnt).
-- `server/data/sqlRepository.js:788-790` — TODO zu `writeHour()`, bewusst als Kompromisslösung dokumentiert (Full-Delete+Reinsert statt gezielter Positions-Verschiebung); nachvollziehbar begründet, kein Handlungsbedarf ohne Kontext zu akuten Problemen.
-**Einschätzung:** niedrig (keine Sicherheitsrelevanz, aber Aufräumpotenzial: `repository.js`s TODOs sollten entweder entfernt/umformuliert werden, wenn `mock`-Modus dauerhaft als reiner Test-/Demo-Modus ohne SQL-Ambition bestehen bleibt, oder die Datei klar als "nur für Mock-Zwecke, kein Implementierungsziel mehr" gekennzeichnet werden).
-**Behoben:** Alle 13 veralteten `TODO: replace with a real SQL ...`-Kommentare aus `repository.js` entfernt; der Datei-Header stellt jetzt klar, dass `repository.js` dauerhaft der `DATA_SOURCE=mock`-Test-/Demo-Modus ist und kein Implementierungsziel mehr. Die beiden weiterhin aktuellen TODOs (`apiRepository.js` jetzt in `apiItems.js`, unvollständige Typ-Liste; `sqlRepository.js:793`, bewusster Kompromiss bei `writeHour()`) bleiben unverändert stehen — beide sind bereits in `docs/FEATURES.md` dokumentiert, nicht nur im Code versteckt.
-
-### 2.7 Smoke-Test-Skripte (`server/scripts/*.js`) sind gut dokumentiert, aber nicht in `DEPLOYMENT.md`/`README.md` als CI-Artefakt erwähnt
-**Fundort:** `server/scripts/smoke-reads-api.js` (329 Zeilen, sehr sorgfältig geschrieben, mit klaren Assertions und Kommentaren)
-Diese Skripte werden im `README.md:43` erwähnt ("19 Smoke-Tests"), aber es gibt keinen `npm script` in `server/package.json`, der sie aufruft (kein `"test"`-Skript definiert). Wer die Smoke-Tests laufen lassen will, muss den `node server/scripts/smoke-reads-api.js`-Aufruf manuell aus dem Kommentar im Dateikopf entnehmen.
-**Einschätzung:** niedrig.
-**Vorschlag:** `"smoke:reads": "node scripts/smoke-reads-api.js"` etc. als npm-Skripte in `server/package.json` ergänzen.
+**Assessment:** medium — the only `high` vulnerability (multer) has been eliminated; the remaining ones are moderate and both depend on major upgrades.
+**Open items for a dedicated pass:**
+1. **Express 4 → 5** — resolves the `qs` gap. Breaking changes in routing/middleware, needs a test pass across all routes.
+2. **Vite 4 → 8** — resolves the esbuild gap. Only affects the dev server, not the production build, hence low urgency.
+3. **Pinning strategy** — after the update, verified that the three changed packages (multer, body-parser, qs) carry no `preinstall`/`install`/`postinstall`/`prepare` scripts; a lesson from the dotenv-17 incident. Dependabot/Renovate + a CI audit gate would be a more durable safeguard than manually pinning every package.
 
 ---
 
-## Bereich 3: Effizienz & Code-Qualität
+## Area 2: Documentation
 
-### 3.1 Weitere N+1-artige Muster über `getPlaylistsByDate` hinaus
-**Fundort 1:** `server/data/apiRepository.js:793-806` (`getPlaylistsByDate`)
-Wie im Auftrag bereits bekannt: 24 parallele Requests pro Tagesansicht. Der Code kommentiert dies selbst als bewusst in Kauf genommen (`apiRepository.js:787-792`), abgefedert durch den Concurrency-Limiter.
+### 2.1 `getItemHistory()` return format differs between SQL and API repository — ✅ fixed (2026-09-09)
+**Location:** `server/data/sqlRepository.js:381-402` vs. `server/data/apiRepository.js:664-685` vs. `frontend/src/pages/ItemEditor.jsx:1218`
+- `sqlRepository.js#getItemHistory` returns `{ slot, date, hour }`.
+- `apiRepository.js#getItemHistory` (commented as "mirrors" the API) returns `{ playedAt, show, moderator }` and its comment (`apiRepository.js:668-675`) explicitly flags this inconsistency: *"sqlRepository.js's getItemHistory() returns { slot, date, hour } instead, which that same table doesn't read — a pre-existing mismatch in the sqlite path, left alone here"*.
+- The frontend (`ItemEditor.jsx:1218`) reads `entry.playedAt` — this field only exists in API mode. In `DATA_SOURCE=sqlite` mode (per `.env.production.example:16`, the **default production mode**), the history table in the item editor therefore presumably shows "-" for every entry instead of a date, because `playedAt` is `undefined` there.
+- The git log shows a commit `10043d1 fix: getItemHistory liefert playedAt fuer die Verlauf-Tabelle` — suggesting this was already fixed on the API path, but the SQL path was, per an explicit comment, deliberately left untouched.
+**Assessment:** medium to critical — depending on whether `sqlite` is the actually used production mode (per `.env.production.example`, yes). If so, the history table in the item editor is presumably functionally broken in production (shows no date).
+**Fixed:** `sqlRepository.js#getItemHistory` now additionally returns `playedAt`, `show`, and `moderator` in the API repository's format. `slot`/`date`/`hour` are preserved (verified beforehand: nobody reads them outside this function). The suspicion was confirmed — verified against the test DB: before the fix, `playedAt` was `undefined` for all entries; now all 43 entries return valid date values, sorting and hour distribution work.
+**Known limitation:** The `playlist` table only knows date + hour, so the timestamp is hour-precise (minutes always `:00`) — unlike `api` mode with an exact time. Deliberately constructed without a timezone suffix so the hour isn't shifted when parsed in the browser. Commented in the code.
 
-**Fundort 2:** `server/data/apiRepository.js:1194-1197` (`getFolderById`) und `442-448` (`getItemFolders`)
-Beide Funktionen laden bei jedem Aufruf **den kompletten Ordnerbaum** (`getFolders()`, laut Kommentar "155-folder tree") neu, nur um eine einzelne ID nachzuschlagen. Wird `getFolderById` mehrfach hintereinander aufgerufen (z. B. `renameFolder`/`moveFolder` rufen es jeweils einmal auf, s. `apiRepository.js:1218-1234`), entstehen mehrere volle Baum-Fetches pro Nutzeraktion statt eines gecachten Zugriffs.
+### 2.2 README claims DB access via a "real SQL server", but SQLite actually runs
+**Location:** `README.md:39` vs. `README.md:41`
+Line 39: *"mAirListDB runs on a real SQL server (PostgreSQL, MariaDB/MySQL, or MSSQL). Direct database access is possible."* Line 41 right after: *"Current mode: real SQLite DB."* This isn't wrong on its own (both sentences are correct in the context of the broader mAirList ecosystem), but the sequence is confusing for newcomers — the first sentence suggests SQL-server access, the second seems to immediately contradict it. Not a factual error, but a phrasing/ordering issue.
+**Assessment:** low.
+**Suggestion:** Reorder the paragraph: explain the current SQLite mode first, then mark the optional direct SQL-server access as a future option/alternative.
 
-**Fundort 3:** `server/data/sqlRepository.js:141-149` (`getFolderChildren`)
+### 2.3 `docs/FEATURES.md` and `README.md` phase status appear more optimistic than the code in some places
+Not fully verifiable without a complete comparison of every phase against the code, but as a note: `README.md:81` (phase F) lists "conflict detection still missing" for multi-user playlists — consistent with the code (`reorderPlaylist`/`insertPlaylistItem` in both repositories have no version/conflict check other than the unverified `VersionInfo` passthrough in `apiRepository.js:887-898`). No contradiction found, but worth noting: the `VersionInfo` mechanism in `writeHour()` (API path), per its comment (`apiRepository.js:873-875`), is not checked for conflicts — matches the doc's "still missing" statement, but isn't explicitly marked as an open item in the code itself (only implied via the comment).
+**Assessment:** low (docs and code largely agree, but the open item is only visible in the code as an incidental comment, not as a TODO/FIXME).
+
+### 2.4 Missing module documentation
+**Location:** `server/data/repository.js` (mock repository)
+The file was not read in full (outside the scope of the core review), but `apiRepository.js` and `sqlRepository.js` are both thoroughly and consistently commented (header comments per function, rationale for design decisions). This is positive and above average for this project — no negative finding here, more of a compliment.
+**Assessment:** no finding / positive.
+
+### 2.5 Onboarding: README + DEPLOYMENT.md + SETUP.md are fundamentally sufficient
+`DEPLOYMENT.md` covers Windows deployment including build-tools pitfalls (`better-sqlite3` compilation) in detail, and per its own account ("Production deployment — experience", `DEPLOYMENT.md:108-113`) has already been carried out and verified once for real. One step is missing, however:
+**Location:** `DEPLOYMENT.md:34-55` (step 3, configure environment)
+It is not mentioned that `DATA_SOURCE=api` mode also requires setting `API_DB_USER`/`API_DB_PASSWORD` (these are commented out in `.env.production.example:23-24`) — anyone trying to start directly in `api` mode gets no hint in `DEPLOYMENT.md`, only the comment in the `.env` file itself.
+**Assessment:** low (the default mode is `sqlite`, `api` mode is not yet complete per the README — hence lower priority).
+**Suggestion:** A short paragraph in `DEPLOYMENT.md` for the optional `api` mode, referencing `docs/MAIRLISTDB-API.md`.
+
+### 2.6 Dead/commented-out code — ✅ fixed (2026-09-10)
+**Locations:**
+- `server/data/repository.js:322,330,347,362,532,540,548,558,622,694,755,773,789` — consistently `TODO: replace with a real SQL ... once the schema is confirmed` comments. The schema has long since been confirmed (`docs/SCHEMA.md` exists, `sqlRepository.js` is in production) — this file is therefore presumably the original mock repository and is now only used as the `DATA_SOURCE` fallback (`mock`). The TODOs are outdated beyond the point where they still make sense (the real SQL implementation has long existed in parallel in `sqlRepository.js`).
+- `server/data/apiRepository.js:1336` — another TODO ("this type list is incomplete...") that is understandable and still current in the function's context (not a dead-code finding, mentioned only for completeness).
+- `server/data/sqlRepository.js:788-790` — TODO about `writeHour()`, deliberately documented as a compromise solution (full delete+reinsert instead of a targeted position shift); well justified, no action needed absent an acute problem.
+**Assessment:** low (no security relevance, but cleanup potential: `repository.js`'s TODOs should either be removed/reworded, if `mock` mode remains permanently a pure test/demo mode with no SQL ambition, or the file should be clearly marked as "for mock purposes only, no longer an implementation target").
+**Fixed:** All 13 outdated `TODO: replace with a real SQL ...` comments removed from `repository.js`; the file header now clarifies that `repository.js` is permanently the `DATA_SOURCE=mock` test/demo mode and no longer an implementation target. The two still-current TODOs (`apiRepository.js`, now in `apiItems.js`, incomplete type list; `sqlRepository.js:793`, deliberate compromise in `writeHour()`) remain unchanged — both are already documented in `docs/FEATURES.md`, not hidden only in the code.
+
+### 2.7 Smoke-test scripts (`server/scripts/*.js`) are well documented, but not mentioned in `DEPLOYMENT.md`/`README.md` as a CI artifact
+**Location:** `server/scripts/smoke-reads-api.js` (329 lines, written very carefully, with clear assertions and comments)
+These scripts are mentioned in `README.md:43` ("19 smoke tests"), but there is no `npm script` in `server/package.json` that calls them (no `"test"` script defined). Anyone wanting to run the smoke tests has to manually pull the `node server/scripts/smoke-reads-api.js` invocation from the comment at the top of the file.
+**Assessment:** low.
+**Suggestion:** Add `"smoke:reads": "node scripts/smoke-reads-api.js"` etc. as npm scripts in `server/package.json`.
+
+---
+
+## Area 3: Efficiency & code quality
+
+### 3.1 Further N+1-like patterns beyond `getPlaylistsByDate`
+**Location 1:** `server/data/apiRepository.js:793-806` (`getPlaylistsByDate`)
+As already known in the brief: 24 parallel requests per day view. The code itself comments this as a deliberate tradeoff (`apiRepository.js:787-792`), cushioned by the concurrency limiter.
+
+**Location 2:** `server/data/apiRepository.js:1194-1197` (`getFolderById`) and `442-448` (`getItemFolders`)
+Both functions load the **entire folder tree** (`getFolders()`, per the comment a "155-folder tree") on every call, just to look up a single ID. If `getFolderById` is called repeatedly in sequence (e.g. `renameFolder`/`moveFolder` each call it once, see `apiRepository.js:1218-1234`), multiple full tree fetches occur per user action instead of a cached access.
+
+**Location 3:** `server/data/sqlRepository.js:141-149` (`getFolderChildren`)
 ```js
 items: itemIds.map((itemId) => getItemById(itemId)).filter(Boolean),
 ```
-Pro Item in einem Ordner wird ein separates `getItemById()` aufgerufen, das intern wiederum 3 zusätzliche Queries ausführt (`item_cuemarkers`, `item_attributes`, `item_folders` — s. `rowToItem()`, `sqlRepository.js:293-336`). Bei einem Ordner mit z. B. 50 Items sind das ~200 Einzel-Queries statt eines gejointen Bulk-Reads. Bei lokalem SQLite-Zugriff ist die Latenz pro Query gering, aber bei größeren Ordnern (Bibliotheken mit tausenden Items) skaliert das nicht gut.
+A separate `getItemById()` is called for each item in a folder, which internally runs 3 additional queries (`item_cuemarkers`, `item_attributes`, `item_folders` — see `rowToItem()`, `sqlRepository.js:293-336`). For a folder with, say, 50 items, that's ~200 individual queries instead of one joined bulk read. For local SQLite access the per-query latency is small, but for larger folders (libraries with thousands of items) this doesn't scale well.
 
-**Fundort 4:** `server/data/apiRepository.js:911-914` (`getRawPlaylistItems`) wird von `reorderPlaylist`, `insertPlaylistItem`, `removePlaylistItem`, `savePlaylistItemOverrides` jeweils einzeln aufgerufen (Read-Modify-Write-Muster), plus `writeHour()` liest die Stunde nochmal für `VersionInfo` (`apiRepository.js:888-889`) — pro Playlist-Schreiboperation also mindestens 2 GET-Requests vor dem eigentlichen PUT. Für Einzelaktionen unkritisch, bei Bulk-Operationen (z. B. mehrere Items nacheinander einfügen) ließe sich das bündeln.
+**Location 4:** `server/data/apiRepository.js:911-914` (`getRawPlaylistItems`) is called individually by `reorderPlaylist`, `insertPlaylistItem`, `removePlaylistItem`, `savePlaylistItemOverrides` each (read-modify-write pattern), plus `writeHour()` reads the hour again for `VersionInfo` (`apiRepository.js:888-889`) — so at least 2 GET requests before the actual PUT per playlist write operation. Uncritical for individual actions, but could be batched for bulk operations (e.g. inserting several items in sequence).
 
-**Einschätzung:** niedrig bis mittel (Performance-Optimierung, kein funktionaler Bug; Relevanz steigt mit Bibliotheksgröße/Nutzerzahl).
-**Vorschlag:** Für `getFolderById`/`getItemFolders` einen kurzlebigen In-Memory-Cache des Ordnerbaums pro Request-Zyklus erwägen. Für `getFolderChildren` (SQL-Pfad) einen gejointen Bulk-Query statt N Einzelaufrufen von `getItemById`.
+**Assessment:** low to medium (performance optimization, not a functional bug; relevance increases with library size/user count).
+**Suggestion:** For `getFolderById`/`getItemFolders`, consider a short-lived in-memory cache of the folder tree per request cycle. For `getFolderChildren` (SQL path), a joined bulk query instead of N individual calls to `getItemById`.
 
-### 3.2 Redundanz zwischen `sqlRepository.js` und `apiRepository.js` — ✅ behoben (2026-09-10)
-**Fundorte:** `CUE_TO_DB`/`DB_TO_CUE` (`sqlRepository.js:83-89` identisch zu `apiRepository.js:203-209`), `typeToCode()` (`sqlRepository.js:92` identisch zu `apiRepository.js:211`), `parsePlaylistId()` (`sqlRepository.js:110-114` fast identisch zu `apiRepository.js:808-814`), `secondsToClock`/`resequenceEntries`-Logik (`sqlRepository.js:774-785` vs. `apiRepository.js:761-772`, beide Kommentare verweisen explizit aufeinander als "mirrors").
-Diese Duplizierung ist an mehreren Stellen im Code selbst als bewusst dokumentiert (z. B. `apiRepository.js:198-201`: "Mirrors sqlRepository.js's..."), vermutlich um die beiden Repositories unabhängig voneinander änderbar zu halten, während `DATA_SOURCE` zwischen ihnen umschaltet. Das ist ein nachvollziehbarer Trade-off, aber bei einer Änderung der Cue-Marker-Namen (`CUE_TO_DB`) müssten beide Dateien synchron gepflegt werden — leicht zu vergessen.
-**Einschätzung:** niedrig (architektonische Entscheidung, keine akute Fehlerquelle, aber Wartungsrisiko).
-**Vorschlag:** `CUE_TO_DB`/`DB_TO_CUE`, `typeToCode`, `parsePlaylistId` und die Sekunden-zu-Uhrzeit-Konvertierung in ein gemeinsames `server/data/shared.js` (oder ähnlich) auslagern, das beide Repositories importieren — reduziert Drift-Risiko, ohne die Repositories inhaltlich zu koppeln.
-**Behoben:** `CUE_TO_DB`/`DB_TO_CUE`, `typeToCode`, `parsePlaylistId`/`playlistId` und `secondsToClock` nach `server/data/shared.js` ausgelagert, von `sqlRepository.js` und `apiRepository.js` (jetzt `apiItems.js`/`apiPlaylists.js`) importiert. `typeToDb()` (nur sqlRepository) und die umgebende Resequence-Iterations-/Mutationslogik (in beiden Dateien unterschiedlich: FixTime-Override im API-Pfad, In-Place-Mutation im SQL-Pfad) bewusst NICHT vereinheitlicht. `repository.js` (Mock) bewusst nicht angeschlossen, bleibt unabhängig. Export-Interface beider Repositories vor/nach Diff verglichen (identisch).
+### 3.2 Redundancy between `sqlRepository.js` and `apiRepository.js` — ✅ fixed (2026-09-10)
+**Locations:** `CUE_TO_DB`/`DB_TO_CUE` (`sqlRepository.js:83-89` identical to `apiRepository.js:203-209`), `typeToCode()` (`sqlRepository.js:92` identical to `apiRepository.js:211`), `parsePlaylistId()` (`sqlRepository.js:110-114` nearly identical to `apiRepository.js:808-814`), `secondsToClock`/`resequenceEntries` logic (`sqlRepository.js:774-785` vs. `apiRepository.js:761-772`, both comments explicitly reference each other as "mirrors").
+This duplication is documented as deliberate in several places in the code itself (e.g. `apiRepository.js:198-201`: "Mirrors sqlRepository.js's..."), presumably to keep the two repositories independently changeable while `DATA_SOURCE` switches between them. This is an understandable tradeoff, but if the cue-marker names (`CUE_TO_DB`) change, both files would need to be kept in sync — easy to forget.
+**Assessment:** low (architectural decision, no acute source of bugs, but a maintenance risk).
+**Suggestion:** Extract `CUE_TO_DB`/`DB_TO_CUE`, `typeToCode`, `parsePlaylistId`, and the seconds-to-clock conversion into a shared `server/data/shared.js` (or similar) imported by both repositories — reduces drift risk without content-coupling the repositories.
+**Fixed:** `CUE_TO_DB`/`DB_TO_CUE`, `typeToCode`, `parsePlaylistId`/`playlistId`, and `secondsToClock` extracted to `server/data/shared.js`, imported by `sqlRepository.js` and `apiRepository.js` (now `apiItems.js`/`apiPlaylists.js`). `typeToDb()` (sqlRepository only) and the surrounding resequence iteration/mutation logic (different in both files: FixTime override on the API path, in-place mutation on the SQL path) deliberately NOT unified. `repository.js` (mock) deliberately not connected, stays independent. Export interface of both repositories compared before/after diff (identical).
 
-### 3.3 `apiRepository.js` ist sehr groß (1476 Zeilen) — ✅ behoben (2026-09-10)
-**Fundort:** `server/data/apiRepository.js` (gesamte Datei)
-Die Datei deckt Items, Folders, Playlists, Audio-Streaming, Attribute-Parsing (XML-Regex), Artists/Titles-Suche und Permissions/Capabilities in einer Datei ab. Sehr gut kommentiert, aber thematisch breit.
-**Einschätzung:** niedrig (reine Wartbarkeits-Empfehlung, kein Bug).
-**Vorschlag (nicht umzusetzen, nur Empfehlung):** Aufteilung nach Domäne denkbar, z. B. `apiRepository/items.js`, `apiRepository/folders.js`, `apiRepository/playlists.js`, `apiRepository/attributes.js`, mit einem `index.js`, das alles zusammenführt (ähnlich dem bestehenden `module.exports`-Muster). Der gemeinsame `apiRequest()`-Helper (Zeilen 140-196) und die Concurrency-/Retry-Logik (Zeilen 35-104) wären ein natürlicher gemeinsamer Kern.
-**Behoben:** Nach Domäne aufgeteilt in `apiClient.js` (apiRequest, Concurrency-Queue, Retry-Logik, Fehlertypen, Auth), `apiItems.js` (Items, Mapping, Suche, Attribute, Artists/Titles), `apiFolders.js` (Ordner-CRUD/-Baum), `apiPlaylists.js` (Playlists lesen/schreiben), `apiAudio.js` (Storage/Audio-Streaming). `apiRepository.js` ist jetzt eine schlanke Fassade (228 statt 1458 Zeilen), re-exportiert alle Untermodule unverändert und behält nur echte domänenübergreifende Kompositionen (`getFolderChildren`, `getDashboardStats`, `getTodayPlaylist`, Storages, Permissions/Capabilities, Logs-Stubs). Modul-Abhängigkeiten bilden einen azyklischen Graphen (kein zirkulärer Require). Export-Interface der Fassade vor/nach Diff verglichen (57 Funktionsnamen, identisch), kein Aufrufer in `routes/`/`scripts/` musste angepasst werden.
+### 3.3 `apiRepository.js` is very large (1476 lines) — ✅ fixed (2026-09-10)
+**Location:** `server/data/apiRepository.js` (entire file)
+The file covers items, folders, playlists, audio streaming, attribute parsing (XML regex), artist/title search, and permissions/capabilities in one file. Very well commented, but topically broad.
+**Assessment:** low (pure maintainability recommendation, not a bug).
+**Suggestion (not to be implemented, recommendation only):** A split by domain is conceivable, e.g. `apiRepository/items.js`, `apiRepository/folders.js`, `apiRepository/playlists.js`, `apiRepository/attributes.js`, with an `index.js` that combines everything (similar to the existing `module.exports` pattern). The shared `apiRequest()` helper (lines 140-196) and the concurrency/retry logic (lines 35-104) would be a natural shared core.
+**Fixed:** Split by domain into `apiClient.js` (apiRequest, concurrency queue, retry logic, error types, auth), `apiItems.js` (items, mapping, search, attributes, artists/titles), `apiFolders.js` (folder CRUD/tree), `apiPlaylists.js` (read/write playlists), `apiAudio.js` (storage/audio streaming). `apiRepository.js` is now a thin facade (228 instead of 1458 lines), re-exports all submodules unchanged, and only keeps genuine cross-domain compositions (`getFolderChildren`, `getDashboardStats`, `getTodayPlaylist`, storages, permissions/capabilities, log stubs). Module dependencies form an acyclic graph (no circular require). Facade's export interface compared before/after diff (57 function names, identical), no caller in `routes/`/`scripts/` needed adjustment.
 
-### 3.4 Frontend: Hooks-Nutzung uneinheitlich
-**Fundort:** `frontend/src/pages/ItemEditor.jsx` (größte Datei mit erkennbaren `.map`/`.filter`-Mustern im Komponentenkörper, nutzt aber bereits `useMemo`/`useCallback` an anderer Stelle laut Grep-Treffer)
-Eine detaillierte Zeile-für-Zeile-Prüfung aller Berechnungen war im gegebenen Rahmen nicht vollständig möglich (Datei wurde nicht komplett gelesen). Der Umstand, dass `historyStats.js` bereits gezielt für Performance gefixt wurde (s. Git-Historie/Auftrag), deutet aber darauf hin, dass ähnliche Stellen in `ItemEditor.jsx` (Cue-Marker-Listen, Attribut-Listen) noch nicht durchgängig auf `useMemo` geprüft wurden.
-**Einschätzung:** niedrig (nicht abschließend verifiziert, als Hinweis für eine gezielte Folgeprüfung markiert statt als bestätigter Befund).
-**Vorschlag:** Gezielte Nachprüfung von `ItemEditor.jsx`, `Playlist.jsx` und `MixEditor.jsx` auf teure Re-Renders (z. B. Sortier-/Filterlisten bei jedem Tastendruck im Suchfeld) mit React DevTools Profiler.
+### 3.4 Frontend: inconsistent hooks usage
+**Location:** `frontend/src/pages/ItemEditor.jsx` (largest file with recognizable `.map`/`.filter` patterns in the component body, but already uses `useMemo`/`useCallback` elsewhere per grep hits)
+A detailed line-by-line check of all computations was not fully possible within the given scope (file was not read in its entirety). The fact that `historyStats.js` has already been specifically fixed for performance (see git history/brief), however, suggests that similar spots in `ItemEditor.jsx` (cue-marker lists, attribute lists) have not yet been consistently checked for `useMemo`.
+**Assessment:** low (not conclusively verified, flagged as a note for a targeted follow-up rather than a confirmed finding).
+**Suggestion:** Targeted follow-up review of `ItemEditor.jsx`, `Playlist.jsx`, and `MixEditor.jsx` for expensive re-renders (e.g. sort/filter lists on every keystroke in the search field) with the React DevTools Profiler.
 
-### 3.5 Fehlerbehandlung im Backend: konsistent, ein Ausreißer
-**Fundorte:** `server/routes/library.js`, `server/routes/auth.js` (alle Handler)
-Fast alle Routen-Handler folgen konsequent dem Muster `try { ... } catch (e) { next(e); }`, das zentral in `server/index.js:55-59` behandelt wird (inkl. sinnvoller Status-Codes über `err.status`). Ein Ausreißer:
-**Fundort:** `server/routes/library.js:327-341` (`POST /api/upload`)
+### 3.5 Backend error handling: consistent, one outlier
+**Locations:** `server/routes/library.js`, `server/routes/auth.js` (all handlers)
+Almost all route handlers consistently follow the `try { ... } catch (e) { next(e); }` pattern, handled centrally in `server/index.js:55-59` (including sensible status codes via `err.status`). One outlier:
+**Location:** `server/routes/library.js:327-341` (`POST /api/upload`)
 ```js
 router.post("/upload", requireScope("library.write"), (req, res, next) => {
   upload.single("file")(req, res, (err) => {
@@ -222,33 +222,33 @@ router.post("/upload", requireScope("library.write"), (req, res, next) => {
   });
 });
 ```
-Hier wird der multer-Fehler direkt mit hartem `400` beantwortet statt über `next(e)` zu laufen — das ist funktional plausibel (multer-Fehler sind praktisch immer Client-Fehler: Dateigröße/Typ), aber inkonsistent mit dem sonst durchgängigen `next(e)`-Muster und geht am zentralen Error-Handler/Logging vorbei (kein `console.error`-Log für fehlgeschlagene Uploads).
-**Einschätzung:** niedrig.
-**Vorschlag:** Auch hier `next(err)` verwenden und ggf. `err.status = 400` vor dem Werfen setzen, damit der zentrale Handler greift und loggt.
+Here the multer error is answered directly with a hard `400` instead of going through `next(e)` — this is functionally plausible (multer errors are practically always client errors: file size/type), but inconsistent with the otherwise consistent `next(e)` pattern and bypasses the central error handler/logging (no `console.error` log for failed uploads).
+**Assessment:** low.
+**Suggestion:** Use `next(err)` here too, and set `err.status = 400` before throwing if needed, so the central handler picks it up and logs it.
 
 ---
 
-## Zusammenfassung: Die 5 wichtigsten Punkte zum Anfangen
+## Summary: the 5 most important points to start with
 
-**Stand 2026-09-09:** Alle fünf ursprünglichen Prioritäten sind in zwei gezielten Durchgängen abgearbeitet (je ein Commit pro Punkt):
+**As of 2026-09-09:** All five original priorities have been worked through in two targeted passes (one commit per item):
 
-1. ~~**`getItemHistory()`-Formatinkonsistenz zwischen SQL- und API-Pfad** (2.1)~~ — ✅ behoben. Der Verdacht hat sich bestätigt: im `sqlite`-Modus war die Verlauf-Ansicht tatsächlich leer. `playedAt` wird jetzt auch dort gesetzt.
+1. ~~**`getItemHistory()` format inconsistency between SQL and API path** (2.1)~~ — ✅ fixed. The suspicion was confirmed: in `sqlite` mode the history view was indeed empty. `playedAt` is now set there too.
 
-2. ~~**`multer`-Sicherheitslücken (hoch)** (1.12)~~ — ✅ behoben: multer 2.2.0 → 2.3.0. Verbleibend nur noch die moderate `qs`-Lücke, die an einem Express-5-Upgrade hängt.
+2. ~~**`multer` security vulnerabilities (high)** (1.12)~~ — ✅ fixed: multer 2.2.0 → 2.3.0. Only the moderate `qs` gap remains, which depends on an Express 5 upgrade.
 
-3. ~~**Kein Brute-Force-Schutz beim Login** (1.4)~~ — ✅ behoben: In-Memory-Rate-Limiting nach Benutzername und IP, konfigurierbar per Env.
+3. ~~**No brute-force protection on login** (1.4)~~ — ✅ fixed: in-memory rate limiting by username and IP, configurable via env.
 
-4. ~~**SSRF bei benutzerdefinierter Hörerzahl-URL** (1.9) und **`secure: false` im Session-Cookie** (1.3)~~ — ✅ beide behoben: URL-Validierung mit DNS-Auflösung bzw. `COOKIE_SECURE`-Env-Variable. Für den TLS-Deploy (Phase H) ist damit nur noch `COOKIE_SECURE=true` zu setzen.
+4. ~~**SSRF with custom listener-count URL** (1.9) and **`secure: false` in the session cookie** (1.3)~~ — ✅ both fixed: URL validation with DNS resolution and `COOKIE_SECURE` env variable, respectively. For the TLS deploy (phase H), only `COOKIE_SECURE=true` still needs to be set.
 
-5. ~~**Reale Server-IP in `server/.env.production.example`** (1.1)~~ — ✅ behoben, durch `<SERVER-IP>` ersetzt. Hinweis: in der Git-Historie weiterhin einsehbar.
+5. ~~**Real server IP in `server/.env.production.example`** (1.1)~~ — ✅ fixed, replaced with `<SERVER-IP>`. Note: still visible in git history.
 
-Ebenfalls erledigt: bcrypt-Cost 10 → 12 (1.5).
+Also done: bcrypt cost 10 → 12 (1.5).
 
-### Nächste sinnvolle Schritte
+### Sensible next steps
 
-Da die ursprüngliche Top-5-Liste abgearbeitet ist, rücken diese Punkte nach vorn:
+Since the original top-5 list has been worked through, these items move up:
 
-1. **Upload-Validierung nur über die Datei-Extension** (1.7) — der Typ-Filter prüft `originalname`, nicht den Inhalt. Der derzeit gewichtigste offene Sicherheitspunkt.
-2. **Fehlende Security-Header** (1.11) — niedrigschwellig. (~~Eingabevalidierung in den Routen, 1.6~~ — ✅ behoben, siehe oben.)
-3. **Express 4 → 5** (1.12) — schließt die letzte gemeldete Backend-Lücke (`qs`), braucht aber einen Test-Durchgang über alle Routen.
-4. ~~Aufräumarbeiten: veraltete TODOs in `repository.js` (2.6), Code-Duplizierung zwischen den beiden echten Repositories (3.2), `apiRepository.js`-Größe (3.3)~~ — ✅ alle drei behoben (2026-09-10), siehe dort. Weiterhin offen: fehlende npm-Skripte für die Smoke-Tests (2.7).
+1. **Upload validation only via file extension** (1.7) — the type filter checks `originalname`, not the content. Currently the most significant open security item.
+2. **Missing security headers** (1.11) — low effort. (~~Input validation in the routes, 1.6~~ — ✅ fixed, see above.)
+3. **Express 4 → 5** (1.12) — closes the last reported backend gap (`qs`), but needs a test pass across all routes.
+4. ~~Cleanup work: outdated TODOs in `repository.js` (2.6), code duplication between the two real repositories (3.2), `apiRepository.js` size (3.3)~~ — ✅ all three fixed (2026-09-10), see there. Still open: missing npm scripts for the smoke tests (2.7).

@@ -1,99 +1,99 @@
 # 🗄️ SCHEMA.md
 
-Echtes Datenbankschema, direkt aus einer mAirListDB (SQLite `.mldb` Datei, mAirList Version 8.x). Kein Raten, kein Reverse Engineering aus der Doku, sondern `PRAGMA table_info()` gegen die echte Datei.
+Real database schema, taken directly from a mAirListDB (SQLite `.mldb` file, mAirList version 8.x). Not guessed, not reverse-engineered from the docs, but `PRAGMA table_info()` against the real file.
 
-> ⚠️ Diese Datenbank war kein produktiver Sender. Das Schema ist echt, die Daten sind Testdaten.
+> ⚠️ This database was not a production station. The schema is real, the data is test data.
 
 ---
 
-## 📋 Tabellen-Übersicht
+## 📋 Table overview
 
-| Tabelle | Zweck |
+| Table | Purpose |
 |---|---|
-| `items` | Alle Bibliotheks-Items (Music, Jingle, Drop, Sweeper, ...) |
-| `item_cuemarkers` | Cue-Punkte pro Item |
-| `item_cuedata` | Erweiterte Cue-Daten als XML (z.B. Hüllkurven) |
-| `item_attributes` | Frei definierbare Key-Value Attribute pro Item |
-| `item_folders` | Zuordnung Item → Ordner (n:m) |
-| `item_icons` | Cover-Bilder der Items |
-| `item_restrictions` | Abspiel-Einschränkungen |
-| `item_campaign_entries` | Werbung: Item → Kampagne |
-| `item_campaign_regions` | Werbung: regionale Splits |
-| `item_campaign_stations` | Werbung: Sender-Zuordnung |
-| `item_campaigns` | Werbe-Kampagnen |
-| `item_containercontent` | Inhalt von Container-Items |
-| `folders` | Virtuelle Ordner (Baumstruktur) |
-| `storages` | Speicherorte (Storage-Konfiguration) |
-| `playlist` | Stundenbasierte Playlists |
-| `playlist_info` | Metadaten pro Playlist-Stunde (Version, Editor, ...) |
-| `playlist_attributes` | Attribute pro Playlist-Stunde |
-| `playlistlog` | Broadcast-Log (was wann gelaufen ist) |
-| `subplaylists` | Sub-Playlist Definitionen |
-| `auth_users` | Benutzerkonten |
-| `auth_groups` | Benutzergruppen |
-| `auth_group_scopes` | Gruppen-Rechte |
-| `auth_scopes` | Rechte-Definitionen |
-| `auth_user_scopes` | Benutzer-Rechte (direkt) |
-| `auth_clients` | API-Clients |
-| `auth_sessions` | Login-Sessions |
-| `auth_tokens` | Auth-Tokens |
-| `config` | Globale Konfiguration |
-| `station_config` | Sender-spezifische Konfiguration |
-| `stations` | Sender (für Mehrstation-Betrieb) |
-| `musictemplates` | Musikplanungs-Vorlagen |
-| `musictemplate_assignment` | Vorlagen-Zuweisung zu Wochentagen/Stunden |
-| `templates` | Stundenvorlagen |
-| `template_assignment` | Vorlagen-Zuweisung |
-| `transitiontemplates` | Übergangs-Vorlagen |
-| `transitiontemplate_assignment` | Zuweisung Übergangsvorlagen |
-| `folder_config` | Ordner-Konfiguration |
+| `items` | All library items (Music, Jingle, Drop, Sweeper, ...) |
+| `item_cuemarkers` | Cue points per item |
+| `item_cuedata` | Extended cue data as XML (e.g. envelopes) |
+| `item_attributes` | Freely definable key-value attributes per item |
+| `item_folders` | Item → folder mapping (n:m) |
+| `item_icons` | Item cover images |
+| `item_restrictions` | Playback restrictions |
+| `item_campaign_entries` | Advertising: item → campaign |
+| `item_campaign_regions` | Advertising: regional splits |
+| `item_campaign_stations` | Advertising: station mapping |
+| `item_campaigns` | Ad campaigns |
+| `item_containercontent` | Content of container items |
+| `folders` | Virtual folders (tree structure) |
+| `storages` | Storage locations (storage configuration) |
+| `playlist` | Hour-based playlists |
+| `playlist_info` | Metadata per playlist hour (version, editor, ...) |
+| `playlist_attributes` | Attributes per playlist hour |
+| `playlistlog` | Broadcast log (what played when) |
+| `subplaylists` | Sub-playlist definitions |
+| `auth_users` | User accounts |
+| `auth_groups` | User groups |
+| `auth_group_scopes` | Group permissions |
+| `auth_scopes` | Permission definitions |
+| `auth_user_scopes` | User permissions (direct) |
+| `auth_clients` | API clients |
+| `auth_sessions` | Login sessions |
+| `auth_tokens` | Auth tokens |
+| `config` | Global configuration |
+| `station_config` | Station-specific configuration |
+| `stations` | Stations (for multi-station operation) |
+| `musictemplates` | Music scheduling templates |
+| `musictemplate_assignment` | Template assignment to weekdays/hours |
+| `templates` | Hour templates |
+| `template_assignment` | Template assignment |
+| `transitiontemplates` | Transition templates |
+| `transitiontemplate_assignment` | Transition template assignment |
+| `folder_config` | Folder configuration |
 
 ---
 
 ## 📊 items
 
-Die zentrale Tabelle. Jede Zeile ist ein Bibliothekselement.
+The central table. Each row is one library item.
 
-| Spalte | Typ | Beschreibung |
+| Column | Type | Description |
 |---|---|---|
-| `idx` | INTEGER PK | Interne ID (wird als `internalId` angezeigt) |
-| `externalid` | VARCHAR | Externe ID (frei belegbar) |
-| `title` | VARCHAR | Titel |
-| `artist` | VARCHAR | Interpret |
-| `type` | VARCHAR | Typ: `Music`, `Jingle`, `Drop`, `Sweeper`, ... |
-| `duration` | REAL | Länge in **Sekunden** (z.B. `155.425`) ✅ bestätigt |
-| `totalduration` | REAL | Gesamtlänge inkl. Intro etc. |
-| `fadeduration` | REAL | Fade-Dauer |
-| `amplification` | REAL | Gain-Wert |
-| `pitch` | REAL | Tonhöhen-Anpassung |
-| `tempo` | REAL | Tempo-Anpassung |
-| `comment` | TEXT | Kommentar/Beschreibung |
-| `endtype` | VARCHAR | Segue-Modus |
-| `color` | VARCHAR | Farbe (Format noch zu klären) |
-| `storage` | INT → storages.idx | Storage-Referenz |
-| `filename` | VARCHAR | Relativer Pfad im Storage (z.B. `Louis Tomlinson - Lemonade.mp3`) |
-| `level_peak` | REAL | Peak-Lautstärke |
-| `level_truepeak` | REAL | True Peak |
-| `level_loudness` | REAL | Lautheit (für Normalisierung) |
-| `options` | VARCHAR | Weitere Optionen |
-| `xmltype` | VARCHAR | Sondertyp für XML-Items (z.B. `File`) |
-| `xmldata` | TEXT | XML-Daten für Sonder-Items |
-| `created` | TIMESTAMP | Anlage-Zeitstempel |
-| `updated` | TIMESTAMP | Letzte Änderung |
+| `idx` | INTEGER PK | Internal ID (shown as `internalId`) |
+| `externalid` | VARCHAR | External ID (freely assignable) |
+| `title` | VARCHAR | Title |
+| `artist` | VARCHAR | Artist |
+| `type` | VARCHAR | Type: `Music`, `Jingle`, `Drop`, `Sweeper`, ... |
+| `duration` | REAL | Length in **seconds** (e.g. `155.425`) ✅ confirmed |
+| `totalduration` | REAL | Total length including intro etc. |
+| `fadeduration` | REAL | Fade duration |
+| `amplification` | REAL | Gain value |
+| `pitch` | REAL | Pitch adjustment |
+| `tempo` | REAL | Tempo adjustment |
+| `comment` | TEXT | Comment/description |
+| `endtype` | VARCHAR | Segue mode |
+| `color` | VARCHAR | Color (format still to be clarified) |
+| `storage` | INT → storages.idx | Storage reference |
+| `filename` | VARCHAR | Relative path within the storage (e.g. `Louis Tomlinson - Lemonade.mp3`) |
+| `level_peak` | REAL | Peak level |
+| `level_truepeak` | REAL | True peak |
+| `level_loudness` | REAL | Loudness (for normalization) |
+| `options` | VARCHAR | Additional options |
+| `xmltype` | VARCHAR | Special type for XML items (e.g. `File`) |
+| `xmldata` | TEXT | XML data for special items |
+| `created` | TIMESTAMP | Creation timestamp |
+| `updated` | TIMESTAMP | Last modified |
 
 ---
 
 ## 🎚️ item_cuemarkers
 
-Eine Zeile pro Cue-Punkt pro Item. **Kein eindeutiger Primärschlüssel**, Kombination `(item, type)` ist eindeutig.
+One row per cue point per item. **No unique primary key**, the combination `(item, type)` is unique.
 
-| Spalte | Typ | Beschreibung |
+| Column | Type | Description |
 |---|---|---|
-| `item` | INT → items.idx | Item-Referenz |
-| `type` | VARCHAR | Cue-Typ (siehe Liste unten) |
-| `value` | REAL | Zeit in **Sekunden** ✅ bestätigt |
+| `item` | INT → items.idx | Item reference |
+| `type` | VARCHAR | Cue type (see list below) |
+| `value` | REAL | Time in **seconds** ✅ confirmed |
 
-### Bestätigte Cue-Typen aus der echten DB
+### Confirmed cue types from the real DB
 
 ```
 CueIn       CueOut      FadeIn      FadeOut     FadeEnd
@@ -102,81 +102,81 @@ HookIn      HookOut
 Outro       StartNext   Preroll
 ```
 
-> **Nicht in dieser DB gesehen** (aus Doku bekannt): `LoopIn`, `LoopOut`, `HookFade`, `Anchor`
+> **Not seen in this DB** (known from the docs): `LoopIn`, `LoopOut`, `HookFade`, `Anchor`
 
 ---
 
 ## 📁 folders
 
-| Spalte | Typ | Beschreibung |
+| Column | Type | Description |
 |---|---|---|
-| `idx` | INTEGER PK | Ordner-ID |
-| `parent` | INT → folders.idx | Eltern-Ordner (NULL = Wurzel) |
-| `name` | VARCHAR | Ordnername |
-| `description` | TEXT | Beschreibung |
+| `idx` | INTEGER PK | Folder ID |
+| `parent` | INT → folders.idx | Parent folder (NULL = root) |
+| `name` | VARCHAR | Folder name |
+| `description` | TEXT | Description |
 
 ---
 
 ## 📦 storages
 
-| Spalte | Typ | Beschreibung |
+| Column | Type | Description |
 |---|---|---|
-| `idx` | INTEGER PK | Storage-ID |
-| `name` | VARCHAR | Anzeigename |
-| `description` | VARCHAR | Beschreibung |
-| `defaultLocation` | VARCHAR | Windows-Pfad (z.B. `D:\Audios`) |
-| `importfolder` | VARCHAR | Standard-Importordner |
+| `idx` | INTEGER PK | Storage ID |
+| `name` | VARCHAR | Display name |
+| `description` | VARCHAR | Description |
+| `defaultLocation` | VARCHAR | Windows path (e.g. `D:\Audios`) |
+| `importfolder` | VARCHAR | Default import folder |
 
 ---
 
 ## 🗓️ playlist
 
-Stundenbasierte Playlists. Eine Zeile = ein Item in einer Stunde.
+Hour-based playlists. One row = one item in one hour.
 
-| Spalte | Typ | Beschreibung |
+| Column | Type | Description |
 |---|---|---|
-| `station` | INT → stations.idx | Sender |
-| `subplaylist` | INT | Sub-Playlist (für Mehrspur) |
-| `slot` | DATETIME | Datum + Stunde: `2026-03-21 08:00:00.000` (Mitternacht: `2026-03-21`) |
-| `pos` | INT | Position in der Stunde (0-basiert) |
-| `item` | INT → items.idx | Item-Referenz (NULL = leerer Slot) |
-| `duration` | REAL | Abspieldauer dieses Eintrags in Sekunden |
-| `xmldata` | TEXT | Lokale Overrides als XML (volatile Änderungen) |
-| `timing` | VARCHAR | `Soft` (Fix-Zeit-Typ) oder NULL |
-| `fixtime` | TIME | Feste Startzeit wenn `timing=Soft` (z.B. `00:00:00.000`) |
-| `state` | VARCHAR | Abspiel-Status |
-| `starttime` | DATETIME | Tatsächliche Startzeit (wird beim Abspielen gesetzt) |
-| `startposition` | REAL | Position beim Start in Sekunden |
-| `stoptime` | DATETIME | Tatsächliche Endzeit |
-| `uniqueid` | VARCHAR | Eindeutige ID pro Eintrag |
+| `station` | INT → stations.idx | Station |
+| `subplaylist` | INT | Sub-playlist (for multi-track) |
+| `slot` | DATETIME | Date + hour: `2026-03-21 08:00:00.000` (midnight: `2026-03-21`) |
+| `pos` | INT | Position within the hour (0-based) |
+| `item` | INT → items.idx | Item reference (NULL = empty slot) |
+| `duration` | REAL | Playback duration of this entry in seconds |
+| `xmldata` | TEXT | Local overrides as XML (volatile changes) |
+| `timing` | VARCHAR | `Soft` (fixed-time type) or NULL |
+| `fixtime` | TIME | Fixed start time when `timing=Soft` (e.g. `00:00:00.000`) |
+| `state` | VARCHAR | Playback status |
+| `starttime` | DATETIME | Actual start time (set during playback) |
+| `startposition` | REAL | Position at start in seconds |
+| `stoptime` | DATETIME | Actual end time |
+| `uniqueid` | VARCHAR | Unique ID per entry |
 
-### Slot-Format (wichtig für Backend)
+### Slot format (important for the backend)
 
 ```
-Mitternacht:    2026-03-21             (kein Uhrzeitanteil)
-Andere Stunden: 2026-03-21 08:00:00.000
+Midnight:      2026-03-21             (no time-of-day component)
+Other hours:   2026-03-21 08:00:00.000
 ```
 
 ---
 
 ## 🔑 item_attributes
 
-| Spalte | Typ | Beschreibung |
+| Column | Type | Description |
 |---|---|---|
-| `item` | INT → items.idx | Item-Referenz |
-| `name` | VARCHAR | Attribut-Name (z.B. `BPM`, `ISRC`, `Genre`, `Jahr`) |
-| `value` | VARCHAR | Wert als String (Zahlen werden als Text gespeichert) |
+| `item` | INT → items.idx | Item reference |
+| `name` | VARCHAR | Attribute name (e.g. `BPM`, `ISRC`, `Genre`, `Year`) |
+| `value` | VARCHAR | Value as string (numbers are stored as text) |
 
-**Echte Attribut-Namen aus der DB:** `Album`, `Album-Interpret`, `BPM`, `Genre`, `Herausgeber`, `ISRC`, `Jahr`, `Track`
+**Real attribute names from the DB:** `Album`, `Album-Interpret`, `BPM`, `Genre`, `Herausgeber`, `ISRC`, `Jahr`, `Track` (these are literal German attribute-name strings stored in the real database, not translated — they must match actual data)
 
 ---
 
 ## 👥 auth_users
 
-| Spalte | Typ | Beschreibung |
+| Column | Type | Description |
 |---|---|---|
-| `id` | INTEGER PK | Benutzer-ID |
-| `name` | VARCHAR | Benutzername |
-| `description` | VARCHAR | Anzeigename |
-| `pw_salt` | VARCHAR | Passwort-Salt |
-| `pw_hash` | VARCHAR | Passwort-Hash |
+| `id` | INTEGER PK | User ID |
+| `name` | VARCHAR | Username |
+| `description` | VARCHAR | Display name |
+| `pw_salt` | VARCHAR | Password salt |
+| `pw_hash` | VARCHAR | Password hash |

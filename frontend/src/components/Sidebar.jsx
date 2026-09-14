@@ -46,7 +46,7 @@ export default function Sidebar({ activePage, onNavigate, user, showLogout = tru
       <nav className="mb-5 space-y-0.5">
         <NavItem
           icon={LayoutDashboard}
-          label="Übersicht"
+          label="Overview"
           active={activePage === "dashboard"}
           onClick={() => onNavigate?.("dashboard")}
         />
@@ -56,7 +56,7 @@ export default function Sidebar({ activePage, onNavigate, user, showLogout = tru
       <nav className="mb-5 space-y-0.5">
         <NavItem
           icon={Database}
-          label="Elemente"
+          label="Elements"
           active={activePage === "list"}
           onClick={onListClick ?? (() => onNavigate?.("list"))}
         />
@@ -77,7 +77,7 @@ export default function Sidebar({ activePage, onNavigate, user, showLogout = tru
           <nav className="space-y-0.5">
             <NavItem
               icon={Users}
-              label="Benutzer"
+              label="Users"
               active={activePage === "users"}
               onClick={() => onNavigate?.("users")}
             />
@@ -89,7 +89,7 @@ export default function Sidebar({ activePage, onNavigate, user, showLogout = tru
             />
             <NavItem
               icon={Settings}
-              label="Einstellungen"
+              label="Settings"
               active={activePage === "settings"}
               onClick={() => onNavigate?.("settings")}
             />
