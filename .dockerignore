@@ -1,0 +1,10 @@
+node_modules
+frontend/node_modules
+server/node_modules
+frontend/dist
+.git
+*.mldb
+*.mldb-wal
+*.mldb-shm
+.env
+server/webinterface-auth.db*

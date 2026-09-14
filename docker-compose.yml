@@ -1,0 +1,20 @@
+services:
+  mairlist-webinterface:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REPO_URL: https://github.com/Mongstaen/mairlist-webinterface.git
+        REPO_REF: main
+    image: mairlist-webinterface:latest
+    container_name: mairlist-webinterface
+    restart: unless-stopped
+    ports:
+      - "8841:8841"
+    env_file:
+      - server/.env
+    volumes:
+      - mairlist-data:/data
+
+volumes:
+  mairlist-data:
